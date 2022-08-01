@@ -280,6 +280,7 @@ typedef struct CompilerContext {
 	Tree       *globals;
 	Tree       *locals;
 	Block      *blocks;
+	Block      *retBlocks;
 	String     *stringLits;
 	LargeConst *largeIntConsts;
 } CompilerContext;

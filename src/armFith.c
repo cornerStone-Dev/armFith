@@ -604,14 +604,11 @@ compileCase(void)/*i;*/
 /*e*/static void
 compileReturn(void)/*i;*/
 {
-	Block *funcBlock = c.blocks;
-	if (funcBlock == 0 || funcBlock->blockType != BLOCK_WORD)
-		{ io_prints("Error: must be inside a function to return.\n"); return; }
 	Block *newBlock = zalloc(sizeof(Block));
 	newBlock->blockType = BLOCK_CASE;
 	newBlock->target = c.compileCursor;
 	putMachineCode(0xBF00);
-	funcBlock->caseList = list_prepend(newBlock, funcBlock->caseList);
+	c.retBlocks = list_prepend(newBlock, c.retBlocks);
 }
 
 /*e*/static void
@@ -623,12 +620,6 @@ endBlock(void)/*i;*/
 	switch (blockType) {
 	case BLOCK_WORD:
 	{
-		// fill in all return statements
-		while (block->caseList)
-		{
-			Block *retBlock = list_removeFirst(&block->caseList);
-			*retBlock->target=armBranch(c.compileCursor - retBlock->target - 2);
-		}
 		// button up word and save it off
 		block->word->value = completeWord();
 		u32 wordSize = ((u32)c.compileCursor - (u32)block->word->value) + 1;
@@ -696,6 +687,12 @@ endBlock(void)/*i;*/
 /*e*/static void*
 completeWord(void)/*i;*/
 {
+	// fill in all return statements
+	while (c.retBlocks)
+	{
+		Block *retBlock = list_removeFirst(&c.retBlocks);
+		*retBlock->target = armBranch(c.compileCursor - retBlock->target - 2);
+	}
 	// output function ending
 	u16 *start;
 	if (c.localIndex == 1 && c.notLeaf == 0)
