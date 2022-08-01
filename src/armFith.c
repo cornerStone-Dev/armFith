@@ -49,6 +49,7 @@ enum{
 	BLOCK_DO,
 	BLOCK_CASE,
 	BLOCK_CASE_COND,
+	BLOCK_RETURN,
 };
 
 enum{
@@ -367,9 +368,9 @@ executeOrContinue(u32 printStack)/*i;*/
 	if (printStack) {
 		mc_printExprStack(); // compile the printing of expr stack
 	}
-	completeWord();
+	void *funcToCall = completeWord();
 	long long result = armFithEnter(c.tos, c.returnStackBase, c.exprStack,
-		(void*)((u32)c.compileBase+1) );
+		funcToCall );
 	c.tos = result;
 	c.exprStack = (u32*)(u32)(result >> 32);
 	c.compileCursor = c.compileBase + 2; // reset the cursor
@@ -536,6 +537,12 @@ assignVar(u8 *start, u32 wordLength)/*i;*/
 /*e*/static u8*
 compileRbl(u8 *cursor)/*i;*/
 {
+	if (cursor[0] == '{')
+	{
+		// handle else statement
+		compileElse();
+		return cursor + 1;
+	}
 	if(    (cursor[0] == 'e')
 		&& (cursor[1] == 'l')
 		&& (cursor[2] == 's')
@@ -595,6 +602,19 @@ compileCase(void)/*i;*/
 }
 
 /*e*/static void
+compileReturn(void)/*i;*/
+{
+	Block *funcBlock = c.blocks;
+	if (funcBlock == 0 || funcBlock->blockType != BLOCK_WORD)
+		{ io_prints("Error: must be inside a function to return.\n"); return; }
+	Block *newBlock = zalloc(sizeof(Block));
+	newBlock->blockType = BLOCK_CASE;
+	newBlock->target = c.compileCursor;
+	putMachineCode(0xBF00);
+	funcBlock->caseList = list_prepend(newBlock, funcBlock->caseList);
+}
+
+/*e*/static void
 endBlock(void)/*i;*/
 {
 	if (c.blocks == 0) { io_prints("Error: unmatched '}'.\n"); return; }
@@ -603,6 +623,12 @@ endBlock(void)/*i;*/
 	switch (blockType) {
 	case BLOCK_WORD:
 	{
+		// fill in all return statements
+		while (block->caseList)
+		{
+			Block *retBlock = list_removeFirst(&block->caseList);
+			*retBlock->target=armBranch(c.compileCursor - retBlock->target - 2);
+		}
 		// button up word and save it off
 		block->word->value = completeWord();
 		u32 wordSize = ((u32)c.compileCursor - (u32)block->word->value) + 1;
@@ -828,7 +854,7 @@ builtInCompileWord(u8 *start, u8 *cursor, u32 length)/*i;*/
 		case 3:  return builtInWord3(start, cursor, length);
 		case 4:  return builtInWord4(start, cursor, length);
 		case 5:  return builtInWord5(start, cursor, length);
-		//~ case 6:  return builtInWord6(start, cursor, length);
+		case 6:  return builtInWord6(start, cursor, length);
 		case 7:  return builtInWord7(start, cursor, length);
 		default: return 0;
 	}
@@ -1015,6 +1041,23 @@ builtInWord5(u8 *start, u8 *cursor, u32 length)/*i;*/
 }
 
 /*e*/static u8*
+builtInWord6(u8 *start, u8 *cursor, u32 length)/*i;*/
+{
+	// while, start of loop
+	if(    (start[0] == 'r')
+		&& (start[1] == 'e')
+		&& (start[2] == 't')
+		&& (start[3] == 'u')
+		&& (start[4] == 'r')
+		&& (start[5] == 'n') )
+	{
+		compileReturn();
+		return start + 6;
+	}
+	return 0;
+}
+
+/*e*/static u8*
 builtInWord7(u8 *start, u8 *cursor, u32 length)/*i;*/
 {
 	if(    (start[0] == 'r')
@@ -1026,6 +1069,18 @@ builtInWord7(u8 *start, u8 *cursor, u32 length)/*i;*/
 		&& (start[6] == 'c') )
 	{
 		callWord((u32)fithRealloc);
+		return start + 7;
+	}
+	if(    (start[0] == 't')
+		&& (start[1] == 'a')
+		&& (start[2] == 'i')
+		&& (start[3] == 'l')
+		&& (start[4] == 'r')
+		&& (start[5] == 'e')
+		&& (start[6] == 'c') )
+	{
+		// output jump to start of function without rebuilding call stack
+		putMachineCode(armBranch(&c.compileBase[2] - c.compileCursor - 2));
 		return start + 7;
 	}
 	return 0;
