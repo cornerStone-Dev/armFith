@@ -115,8 +115,9 @@ void
 armFith(u8 *string)/*p;*/
 {
 	u8 *cursor = string;
+	u8 byte;
 	loop:
-	u8 byte = class[*cursor++] >> 2;
+	byte = class[*cursor++] >> 2;
 	switch (byte)
 {
 	case DIV>>2: { mc_stackDiv(); goto loop; }
