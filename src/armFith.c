@@ -50,6 +50,7 @@ enum{
 	BLOCK_CASE,
 	BLOCK_CASE_COND,
 	BLOCK_RETURN,
+	BLOCK_ONCE,
 };
 
 enum{
@@ -612,6 +613,17 @@ compileReturn(void)/*i;*/
 }
 
 /*e*/static void
+compileOnce(void)/*i;*/
+{
+	Block *newBlock = zalloc(sizeof(Block));
+	newBlock->blockType = BLOCK_ONCE;
+	callWord((u32)fithOnce);
+	newBlock->target = c.compileCursor;
+	putMachineCode(0xBF00);
+	c.blocks = list_prepend(newBlock, c.blocks);
+}
+
+/*e*/static void
 endBlock(void)/*i;*/
 {
 	if (c.blocks == 0) { io_prints("Error: unmatched '}'.\n"); return; }
@@ -678,6 +690,11 @@ endBlock(void)/*i;*/
 		caseBlock->caseList = list_prepend(block, caseBlock->caseList);
 		// block has been repurposed do not free!
 		return;
+	}
+	case BLOCK_ONCE:
+	{
+		*block->target = c.compileCursor - (block->target-2) - 2;
+		break;
 	}
 	
 	}
@@ -988,6 +1005,15 @@ builtInWord4(u8 *start, u8 *cursor, u32 length)/*i;*/
 	{
 		callWord((u32)fithFree);
 		return start + 4;
+	}
+	if(    (start[0] == 'o')
+		&& (start[1] == 'n')
+		&& (start[2] == 'c')
+		&& (start[3] == 'e')
+		&& (start[4] == '{') )
+	{
+		compileOnce();
+		return start + 5;
 	}
 	return 0;
 }

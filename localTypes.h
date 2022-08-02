@@ -33,6 +33,7 @@ void fithFree(void);
 void fithAlloc(void);
 void fithRealloc(void);
 void fithPrintsn(void);
+void fithOnce(void);
 
 
 extern u32 vector_table[];

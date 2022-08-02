@@ -1071,3 +1071,24 @@ fithPrintsn:
 	bl   io_printsn
 	ldr	r0, [sp, #4]
 	pop  {r1, r2, r3, pc}
+
+.balign 2
+.code 16
+.thumb_func
+.global fithOnce
+.type fithOnce, %function
+fithOnce: ;@ preserve r0, r1, r3
+	push {r0, r1}
+	movs r0, 0xE0
+	lsls r0, r0, #8
+	mov  r2, lr
+	subs r2, 1
+	ldrh r1, [r2]
+	adds r0, r1
+	subs r2, 4
+	strh r0, [r2]
+	adds r2, 7
+	pop  {r0, r1}
+	bx   r2
+	
+	
