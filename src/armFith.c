@@ -438,7 +438,7 @@ consumeAlpha(u8 *cursor)/*i;*/
 	//~ case AMP>>2: { cursor = compileAmp(cursor); break; }
 	//~ case MIN>>2: { cursor = compileMin(start, cursor); break; }
 	case SCO>>2: { cursor++; createVar(start, wordLength); goto done; }
-	//~ case COL>>2: { cursor++; createConstant(start, wordLength); goto done; }
+	case COL>>2: { cursor++; createConstant(start, wordLength); goto done; }
 	//~ case ATS>>2: { io_prints("Invalid starting character, aborting\n"); break; }
 	case LPA>>2: { cursor++; createWordFunction(start, wordLength); c.insideParams = 1; goto done; }
 	//~ case LTH>>2: { cursor = compileLth(cursor); break; }// shift
@@ -457,24 +457,39 @@ consumeAlpha(u8 *cursor)/*i;*/
 	Tree *local = tree_find(c.locals, start, wordLength);
 	if (local)
 	{
-		mc_ldrLocal((u32)local->value);
+		if (local->type == WORD_LOCAL)
+		{
+			mc_ldrLocal((u32)local->value);
+		} else {
+			mc_integerLit((u32)local->value);
+		}
 	} else {
 		// check global words
 		Tree *word = tree_find(c.globals, start, wordLength);
 		if (word)
 		{
+			u16 *code;
 			switch (word->type)
 			{
 				case WORD_FUNCTION:
-				case WORD_INLINE_FUNCTION1:
-				case WORD_INLINE_FUNCTION2:
 				callWord((u32)word->value);
+				break;
+				case WORD_INLINE_FUNCTION1:
+				code = (u16*)((u32)word->value-1);
+				putMachineCode(*code);
+				break;
+				case WORD_INLINE_FUNCTION2:
+				code = (u16*)((u32)word->value-1);
+				putMachineCode(*code++);
+				putMachineCode(*code);
 				break;
 				case WORD_GLOBAL:
 				mc_ldrGlobal(word->value);
 				break;
+				case WORD_CONSTANT:
+				mc_integerLit((u32)word->value);
+				break;
 			}
-			
 		} else {
 			io_prints("Error: word definition missing.\n");
 		}
@@ -517,7 +532,12 @@ assignVar(u8 *start, u32 wordLength)/*i;*/
 	Tree *local = tree_find(c.locals, start, wordLength);
 	if (local)
 	{
-		mc_strLocal((u32)local->value);
+		if (local->type == WORD_LOCAL)
+		{
+			mc_strLocal((u32)local->value);
+		} else {
+			io_printsn("Error: cannot store to local constant.");
+		}
 	} else {
 		// check global words
 		Tree *word = tree_find(c.globals, start, wordLength);
@@ -526,11 +546,13 @@ assignVar(u8 *start, u32 wordLength)/*i;*/
 			if (word->type == WORD_GLOBAL)
 			{
 				mc_strGlobal(word->value);
+			} else if (word->type == WORD_CONSTANT) {
+				io_printsn("Error: cannot store to global constant.");
 			} else {
-				io_prints("Error: cannot store to word.\n");
+				io_printsn("Error: Not a global variable.");
 			}
 		} else {
-			io_prints("Error: word definition missing.\n");
+			io_printsn("Error: word definition missing.");
 		}
 	}
 }
@@ -853,6 +875,35 @@ createGlobal(u8 *start, u32 length)/*i;*/
 	word->type = WORD_GLOBAL;
 	// initialize global
 	mc_strGlobal(globalAddr);
+}
+
+/*e*/static void
+createConstant(u8 *start, u32 length)/*i;*/
+{
+	Tree *word = 0;
+	if (c.blocks)
+	{
+		// we are creating a local constant
+		word = tree_add(&c.locals, start, length, 0);
+		if (word)
+		{
+			io_printsn("Warning: redefinition of local constant.");
+		} else {
+			word = tree_find(c.locals, start, length);
+		}
+	} else {
+		// we are creating a global constant
+		word = tree_add(&c.globals, start, length, 0);
+		if (word)
+		{
+			io_prints("Warning: redefinition of global constant.\n");
+		} else {
+			word = tree_find(c.globals, start, length);
+		}
+	}
+	word->type = WORD_CONSTANT;
+	// initialize global
+	mc_strGlobal((u32*)&word->value);
 }
 
 
