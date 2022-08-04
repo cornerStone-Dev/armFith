@@ -439,7 +439,7 @@ consumeAlpha(u8 *cursor)/*i;*/
 	//~ case MIN>>2: { cursor = compileMin(start, cursor); break; }
 	case SCO>>2: { cursor++; createVar(start, wordLength); goto done; }
 	case COL>>2: { cursor++; createConstant(start, wordLength); goto done; }
-	//~ case ATS>>2: { io_prints("Invalid starting character, aborting\n"); break; }
+	case ATS>>2: { cursor++; pushAddressOf(start, wordLength); goto done; }
 	case LPA>>2: { cursor++; createWordFunction(start, wordLength); c.insideParams = 1; goto done; }
 	//~ case LTH>>2: { cursor = compileLth(cursor); break; }// shift
 	//~ case GTH>>2: { cursor = compileGth(cursor); break; } // shift
@@ -550,6 +550,42 @@ assignVar(u8 *start, u32 wordLength)/*i;*/
 				io_printsn("Error: cannot store to global constant.");
 			} else {
 				io_printsn("Error: Not a global variable.");
+			}
+		} else {
+			io_printsn("Error: word definition missing.");
+		}
+	}
+}
+
+/*e*/static void
+pushAddressOf(u8 *start, u32 wordLength)/*i;*/
+{
+	// check for locals first
+	Tree *local = tree_find(c.locals, start, wordLength);
+	if (local)
+	{
+		if (local->type == WORD_LOCAL)
+		{
+			io_printsn("Error: cannot take the address of local variable.");
+		} else {
+			io_printsn("Error: cannot take the address of local constant.");
+		}
+	} else {
+		// check global words
+		Tree *word = tree_find(c.globals, start, wordLength);
+		if (word)
+		{
+			switch (word->type)
+			{
+				case WORD_FUNCTION:
+				case WORD_INLINE_FUNCTION1:
+				case WORD_INLINE_FUNCTION2:
+				case WORD_GLOBAL:
+				mc_integerLit((u32)word->value);
+				break;
+				case WORD_CONSTANT:
+			io_printsn("Error: cannot take the address of global constant.");
+				break;
 			}
 		} else {
 			io_printsn("Error: word definition missing.");
@@ -1016,6 +1052,14 @@ builtInWord4(u8 *start, u8 *cursor, u32 length)/*i;*/
 	{
 		compileCase();
 		return start + 5;
+	}
+	if(    (start[0] == 'c')
+		&& (start[1] == 'a')
+		&& (start[2] == 'l')
+		&& (start[3] == 'l') )
+	{
+		mc_call();
+		return start + 4;
 	}
 	if(    (start[0] == 'd')
 		&& (start[1] == 'r')

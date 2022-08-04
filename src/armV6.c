@@ -92,6 +92,14 @@ armBx(u32 reg)/*p;*/
 	return code;
 }
 
+static u32
+armBlx(u32 reg)
+{
+	u32 code = 0x4780;
+	code += reg << 3;
+	return code;
+}
+
 /*e*/u32
 armMovImm(u32 dest, u32 val)/*p;*/
 {
@@ -1267,14 +1275,14 @@ mc_strGlobal(u32 *globalAddr)/*p;*/
 		// load address
 		mc_largeIntLit((u32)globalAddr);
 		// put it into scratch instead of TOS
-		c.largeIntConsts->next->putInScratch = 1;
+		c.largeIntConsts->putInScratch = 1;
 		putMachineCode(armStrOffset(src, SCRATCH, 0));
 		return;
 	}
 	// load address
 	mc_largeIntLit((u32)globalAddr);
 	// put it into scratch instead of TOS
-	c.largeIntConsts->next->putInScratch = 1;
+	c.largeIntConsts->putInScratch = 1;
 	putMachineCode(armStrOffset(TOS, SCRATCH, 0));
 	mc_popTos();
 }
@@ -1286,7 +1294,7 @@ mc_ldrGlobal(u32 *globalAddr)/*p;*/
 	// load address
 	mc_largeIntLit((u32)globalAddr);
 	// put it into scratch instead of TOS
-	c.largeIntConsts->next->putInScratch = 1;
+	c.largeIntConsts->putInScratch = 1;
 	putMachineCode(armLdrOffset(TOS, SCRATCH, 0));
 }
 
@@ -1358,4 +1366,34 @@ mc_setParams(void)/*p;*/
 	putMachineCode(armMovs(8-c.localIndex, TOS));
 	mc_popTos();
 	c.insideParams = 0;
+}
+
+/*e*/void
+mc_call(void)/*p;*/
+{
+	c.notLeaf = 1;
+	u32 prevCode = *(c.compileCursor-1);
+	if ( (prevCode>>11) == 9)
+	{
+		// [pushTos] [no-op=target] [cursor]
+		// we just pushed a large constant, re=write
+		c.compileCursor -= 1;
+		// put it into scratch instead of TOS
+		c.largeIntConsts->target -= 1;
+		c.largeIntConsts->putInScratch = 1;
+		// [pushTos=target] [no-op=cursor]
+		putMachineCode(armBlx(SCRATCH));
+		return;
+	}
+	if ( ((prevCode>>6) == 0x00) )
+	{
+		// we just pushed a local, re-write
+		c.compileCursor -= 2;
+		u32 src = prevCode>>3;
+		putMachineCode(armBlx(src));
+		return;
+	}
+	putMachineCode(armMovs(SCRATCH, TOS));
+	mc_popTos();
+	putMachineCode(armBlx(SCRATCH));
 }
