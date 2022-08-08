@@ -119,7 +119,10 @@ DELAY_COUNT = 0x00100000
 FIFO_BUFF_START  = 0x20040000
 FIFO_WRITER_ADDR = 0x20040100
 
-END_OF_RAM = 0x20042000
+END_OF_RAM              = 0x20042000
+FITH_RETURN_STACK       = 0x20041C00
+CORE1_FITH_EXPR_STACK   = 0x20041000
+CORE1_FITH_RETURN_STACK = 0x20040C00
 SIZE_OF_RAM_BUILD = (__bss_start__-0x20000000)
 
 PICO_FLASH_SPI_CLKDIV =  4
@@ -442,6 +445,7 @@ flashEntry:
 	bl   armFithInit
 	bl   picoInit
 	;@~ bl   createFirstProcess
+	ldr  r1,=FITH_RETURN_STACK  ;@INITIAL_STACK
 1:  wfe
 	b    1b
 	
@@ -770,24 +774,28 @@ os_giveSpinLock: ;@ r0 = lock to give
 .global core1ServerSetup
 .type core1ServerSetup, %function
 ;@ see tFith.c
+;@ we set up this core to run fith natively, r1, r3-r7 are preserved
+;@ r0 is TOS and r2 is scratch. In this context r3-r7 can be used
 core1ServerSetup:
-	ldr  r1, =vector_table
-	mov  r8, r1 ;@ set BASE_ADDR
+	ldr  r4, =vector_table
+	ldr  r1, =CORE1_FITH_RETURN_STACK
+	ldr  r3, =SIO_BASE
 1:
-	ldr  r3, =SIO_BASE ;@ set SPARE
-	ldr  r1, [r3, #SIO_FIFO_ST] ;@ read fifo status
-	lsrs r1, 1
+	ldr  r2, =CORE1_FITH_EXPR_STACK
+	mov  sp, r2 ;@ not technically needed but could allow dirty exits
+	ldr  r2, [r3, #SIO_FIFO_ST] ;@ read fifo status
+	lsrs r2, 1
 	bcc  2f ;@ if fifo has data process it
-	ldr  r1, [r3, #SIO_FIFO_READ] ;@ read the fifo
-	lsrs r0, r1, 16
-	add  r0, r8 ;@ make pointer from top 16 bits
+	ldr  r2, [r3, #SIO_FIFO_READ] ;@ read the fifo
+	lsrs r0, r2, 16
+	adds r0, r4 ;@ make pointer from top 16 bits
 	;@~ push {r0,r1,r2,r3}
 	;@~ movs r0, r2
 	;@~ bl printWord
 	;@~ pop  {r0,r1,r2,r3}
-	uxth r1, r1 ;@ lower 16 bits is used to jump to
-	add  r1, r8
-	blx  r1
+	uxth  r2, r2 ;@ lower 16 bits is used to jump to
+	adds  r2, r4
+	blx   r2
 	b    1b
 2:
 	wfe
@@ -1012,6 +1020,16 @@ armFithEnter: ;@ r0 = TOS r1 = Return SP r2 = Expr SP r3 = target
 	mov  r1, sp ;@ prepare to return armFith stack pointer
 	mov  sp, r4 ;@ restore C stack pointer
 	pop  {r4, pc}
+
+.balign 2
+.code 16
+.thumb_func
+.global armFithWrapper
+.type armFithWrapper, %function
+armFithWrapper: ;@ r0 = string r1 = Return SP r2 = Expr SP r3 = target
+	push {r1, r3, lr}
+	bl    armFith
+	pop  {r1, r3, pc}
 
 .balign 2
 .code 16

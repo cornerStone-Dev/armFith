@@ -12,7 +12,7 @@ armFithInit(void)/*p;*/
 {
 	c.compileBase     = (void*)__bss_end__;
 	c.compileCursor   = (void*)__bss_end__;
-	c.returnStackBase = (void*)END_OF_REG_RAM;
+	c.returnStackBase = (void*)FITH_RETURN_STACK;
 	c.exprStackBase   = (void*)FITH_EXPR_STACK;
 	c.exprStack       = (void*)FITH_EXPR_STACK;
 	io_printsn("armFithInit!");

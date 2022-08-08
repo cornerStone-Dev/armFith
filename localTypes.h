@@ -21,7 +21,7 @@ void os_giveSpinLock(u32 lockNum);
 void dmaWordForwardCopy(void *src, void *dst, s32 size);
 void setZero(void *dst, s32 size);
 void setZeroWait(void);
-void core1ServerSetup(void);
+void core1ServerSetup(void) __attribute__((noreturn));
 void xipSetup(void);
 void REBOOT(void);
 void startSysTimer(void);
@@ -34,6 +34,7 @@ void fithAlloc(void);
 void fithRealloc(void);
 void fithPrintsn(void);
 void fithOnce(void);
+void armFithWrapper(void);
 
 
 extern u32 vector_table[];
@@ -122,10 +123,12 @@ void IRtoMachine(
 
 #define END_OF_RAM        ((u32)0x20042000)
 #define SECOND_STACK      ((u32)0x20041000)
-#define FITH_EXPR_STACK   ((u32)0x20040C04)
-#define END_OF_REG_RAM    ((u32)0x20040000)
-//~ #define START_OF_REG_RAM  ((u32)0x20010000)
-#define START_OF_REG_RAM  ((u32)0x2000FA90)
+#define FITH_EXPR_STACK   ((u32)0x20040C00)
+#define FITH_RETURN_STACK ((u32)0x20040804)
+//~ #define END_OF_REG_RAM    ((u32)0x20040000)
+#define END_OF_REG_RAM    ((u32)0x20040804)
+#define START_OF_REG_RAM  ((u32)0x20010000)
+//~ #define START_OF_REG_RAM  ((u32)0x2000FA90)
 #define FITH_ESP_BASE     ((u32)0x20041000)
 #define FITH_RSP_BASE     SECOND_STACK
 

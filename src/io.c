@@ -266,7 +266,7 @@ static void bufferAndSend(u32 data)
 		} else {
 			uart0BuffStartIndex = uart0BuffIndex;
 		}
-		u32 dataToSend = ((u32)armFith << 16 >> 16);
+		u32 dataToSend = ((u32)armFithWrapper << 16 >> 16);
 		dataToSend += startOfLine << 16;
 		helper_sendMsg1(dataToSend);
 		asm("sev");
