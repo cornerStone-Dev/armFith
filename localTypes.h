@@ -41,6 +41,7 @@ void co_yield(void);
 void* co_getFrom(void);
 void suspendUartTxOutput(void);
 void printSP(void);
+void fithClearStack(void);
 
 
 extern u32 vector_table[];

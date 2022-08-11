@@ -971,6 +971,11 @@ builtInWord1(u8 *start, u8 *cursor, u32 length)/*i;*/
 		mc_printExprStack();
 		return start + 1;
 	}
+	if(    (start[0] == 'c') )
+	{
+		callWord((u32)fithClearStack);
+		return start + 1;
+	}
 	return 0;
 }
 

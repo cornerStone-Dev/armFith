@@ -1106,6 +1106,20 @@ fithOnce: ;@ preserve r0, r1, r3
 .balign 2
 .code 16
 .thumb_func
+.global fithClearStack
+.type fithClearStack, %function
+fithClearStack:
+	mov   r2, sp
+	adds  r2, 248
+	adds  r2, 248
+	lsrs  r2, 9
+	lsls  r2, 9
+	mov   sp, r2
+	bx    lr
+
+.balign 2
+.code 16
+.thumb_func
 .global co_yieldWrapper
 .type co_yieldWrapper, %function
 co_yieldWrapper: ;@ r0 = arg, r1 = ToCoroutine
