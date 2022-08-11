@@ -267,12 +267,19 @@ typedef struct String {
 	u16           *target;
 } String;
 
+typedef struct StringBuff {
+	struct StringBuff *next;
+	u8                 string[4];
+} StringBuff;
+
 typedef struct CompilerContext {
 	u8          error;
 	u8          localIndex;
 	u8          blockIndex;
 	u8          notLeaf;
 	u8          insideParams;
+	u8          lockArmFith;
+	StringBuff *nextLines;
 	Function   *currentFunc;
 	u32        *returnStackBase;
 	u32        *exprStackBase;

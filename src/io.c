@@ -6,7 +6,6 @@ static u32      uart0BuffStartIndex;
 static u32      uart0BuffIndex;
 ROMFunctions    rom_func;
 static Routine *routines;
-static Event    ioEventData    = {armFith, 0 };
 static Event    ioEventTxReady = {txIsReady, 0 };
 static u32      txWait;
 
@@ -308,8 +307,7 @@ static void bufferAndSend(u32 data)
 		} else {
 			uart0BuffStartIndex = uart0BuffIndex;
 		}
-		ioEventData.data     = startOfLine;
-		helper_sendMsg1((u32)&ioEventData);
+		helper_sendEvent(armFith, startOfLine);
 		asm("sev");
 	}
 }

@@ -564,7 +564,7 @@ resetIOBank:
 .balign 2
 .code 16
 .thumb_func
-.type configClock, %function
+.type configUART, %function
 configUART:
 	;@ Section UART 
 	;@bring up UART

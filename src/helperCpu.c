@@ -7,6 +7,10 @@ typedef struct ProcessorFifo {
 	volatile u32 read;
 } ProcessorFifo;
 
+#define NUM_OF_EVENTS (1<<3)
+static Event events[NUM_OF_EVENTS];
+static u32   eventIndex;
+
 /*e*/
 void
 helper_init(void) __attribute__((noreturn));/*p*/
@@ -47,6 +51,21 @@ helper_init(void)
 	while(1){
 		asm("wfe");
 	}
+}
+
+/*e*/
+void
+helper_sendEvent(void *function, void *data)/*p;*/
+{
+	ProcessorFifo *fifo = (void*)SIO_FIFO_ST;
+	u32 index = eventIndex;
+	// reserve current index
+	eventIndex = (index+1) & (NUM_OF_EVENTS-1);
+	// write out event data
+	events[index].function = function;
+	events[index].data     = data;
+	// send pointer to event data
+	fifo->write = (u32)&events[index];
 }
 
 /*e*/

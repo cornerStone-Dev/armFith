@@ -120,6 +120,19 @@ armFith(u8 *string)/*p;*/
 {
 	u8 *cursor = string;
 	u8 byte;
+	StringBuff *current = 0;
+	if (c.lockArmFith == 0)
+	{
+		c.lockArmFith = 1;
+	} else {
+		// armFith is already running concurrently.
+		u32 length = st_len(cursor);
+		StringBuff *new = zalloc(sizeof(StringBuff) + length - 3);
+		rom_func.memcpy(new->string, cursor, length);
+		c.nextLines = list_append(new, c.nextLines);
+		return;
+	}
+	
 	loop:
 	byte = class[*cursor++] >> 2;
 	switch (byte)
@@ -148,7 +161,7 @@ armFith(u8 *string)/*p;*/
 	case DOL>>2: { cursor = compileDol(cursor); goto loop; }
 	case LBR>>2: { advComileStub(77); goto loop; }
 	case BNG>>2: { cursor = compileBng(cursor); goto loop; }
-	case QMK>>2: { printMemStats();/*io_prints("Invalid starting character, aborting\n");*/ break; }
+	case QMK>>2: { printMemStats(); goto loop; /*break;*/ }
 	case DIG>>2: { cursor = consumeNumLit(cursor); goto loop; }
 	case ALP>>2: { cursor = consumeAlpha(cursor); goto loop; }
 	case DQO>>2: { cursor = consumeStringLit(cursor); goto loop; }
@@ -160,6 +173,15 @@ armFith(u8 *string)/*p;*/
 	case NUL>>2: { executeOrContinue(1); io_prints("> "); break; }
 	case BAD>>2: { io_prints("Bad input byte detected, aborting\n"); break; }
 }
+	if (current != 0) { free(current); current = 0; }
+	if (c.nextLines)
+	{
+		current = list_removeFirst(&c.nextLines);
+		cursor = current->string;
+		goto loop;
+	}
+	if (c.lockArmFith != 0) { c.lockArmFith = 0; }
+	
 	return;
 }
 

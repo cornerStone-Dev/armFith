@@ -323,9 +323,9 @@ void printMemStats(void)/*p;*/
 	u32     memSize  = 32;
 	for (u32 x = 0; x < LOGMAX; x++)
 	{
-		cursor = mem.aiFreelist[x];
 		io_printi(memSize);
 		io_prints(":");
+		cursor = mem.aiFreelist[x];
 		u32 nodeCount = 0;
 		while (cursor != &mem.sentinalNode)
 		{
