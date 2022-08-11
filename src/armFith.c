@@ -12,11 +12,13 @@ armFithInit(void)/*p;*/
 {
 	c.compileBase     = (void*)__bss_end__;
 	c.compileCursor   = (void*)__bss_end__;
-	c.returnStackBase = (void*)FITH_RETURN_STACK;
-	c.exprStackBase   = (void*)FITH_EXPR_STACK;
-	c.exprStack       = (void*)FITH_EXPR_STACK;
-	io_printsn("armFithInit!");
-	io_prints("> ");
+	//~ c.returnStackBase = (void*)FITH_RETURN_STACK;
+	//~ c.exprStackBase   = (void*)FITH_EXPR_STACK;
+	//~ c.exprStack       = (void*)FITH_EXPR_STACK;
+	c.returnStackBase = allocStack();
+	c.exprStackBase   = c.returnStackBase + (512/4);
+	c.exprStack       = c.exprStackBase;
+	io_prints("armFithInit!\n> ");
 	mc_wordStart();
 }
 

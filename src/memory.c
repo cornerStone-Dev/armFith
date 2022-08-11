@@ -48,7 +48,7 @@ typedef struct MemGlobal
 	** of each block.  One byte per block.
 	*/
 	u8 *aCtrl;
-	//~ void *cache;
+	void *cache;
 	/*
 	** Lists of free blocks.  aiFreelist[0] is a list of free blocks of
 	** size mem.szAtom.  aiFreelist[1] holds blocks of size szAtom*2.
@@ -265,6 +265,18 @@ void *realloc(void *pPrior, u32 nBytes)/*p;*/
 	return newMemory;
 }
 
+/*e*/
+void *allocStack(void)/*p;*/
+{
+	asm("CPSID i"); // disable interrupts
+	os_takeSpinLock(LOCK_MEMORY_ALLOC);
+	void *stack = mem.cache;
+	mem.cache = zalloc_internal(512, 4);
+	os_giveSpinLock(LOCK_MEMORY_ALLOC);
+	asm("CPSIE i"); // enable interrupts
+	return stack;
+}
+
 /*
 ** Initialize the memory allocator.
 */
@@ -296,6 +308,7 @@ void memSysInit(void)/*p;*/
 			iOffset += nAlloc;
 		}
 	}
+	(void)allocStack();
 	return;
 }
 
@@ -313,11 +326,18 @@ void printMemStats(void)/*p;*/
 		cursor = mem.aiFreelist[x];
 		io_printi(memSize);
 		io_prints(":");
+		u32 nodeCount = 0;
 		while (cursor != &mem.sentinalNode)
 		{
 			memReady += memSize;
-			io_prints("#");
+			//~ io_prints("#");
+			nodeCount++;
 			cursor = cursor->next;
+		}
+		while (nodeCount > 0)
+		{
+			io_prints("#");
+			nodeCount--;
 		}
 		io_prints("\n");
 		memSize *= 2;

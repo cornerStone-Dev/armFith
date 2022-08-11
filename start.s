@@ -120,7 +120,7 @@ FIFO_BUFF_START  = 0x20040000
 FIFO_WRITER_ADDR = 0x20040100
 
 END_OF_RAM              = 0x20042000
-FITH_RETURN_STACK       = 0x20041C00
+CORE0_FITH_RETURN_STACK = 0x20041C20
 CORE1_FITH_EXPR_STACK   = 0x20041000
 CORE1_FITH_RETURN_STACK = 0x20040C00
 SIZE_OF_RAM_BUILD = (__bss_start__-0x20000000)
@@ -440,12 +440,12 @@ flashEntry:
 	bl configUART
 	
 	bl setZeroWait ;@ until there is enough time to rip through both stacks
-	bl   helper_unlock
 	bl   memSysInit
+	bl   helper_unlock
 	bl   armFithInit
 	bl   picoInit
 	;@~ bl   createFirstProcess
-	ldr  r1,=FITH_RETURN_STACK  ;@INITIAL_STACK
+	ldr  r1,=CORE0_FITH_RETURN_STACK  ;@INITIAL_STACK
 1:  wfe
 	b    1b
 	
@@ -593,7 +593,7 @@ configUART:
 	;@~ ldr r1,=(1<<1)
 	;@~ str r1,[r4, #UART0_DMA_CR] ;@ enable DMA on RX and tx (1<<0)
 	
-	ldr r1,=(1<<6)|(1<<4) ;@ |(1<<5)
+	ldr r1,=(1<<6)|(1<<4)|(1<<5) ;@
 	str r1,[r4, #UART0_IRMASK]
 	
 	;@~ ldr r0,=IO_GPIO00_CTRL ;@ set gpio 0 to UART 0 TX
@@ -777,29 +777,33 @@ os_giveSpinLock: ;@ r0 = lock to give
 ;@ we set up this core to run fith natively, r1, r3-r7 are preserved
 ;@ r0 is TOS and r2 is scratch. In this context r3-r7 can be used
 core1ServerSetup:
-	ldr  r4, =vector_table
-	ldr  r1, =CORE1_FITH_RETURN_STACK
-	ldr  r3, =SIO_BASE
+	bl   allocStack
+	movs r1, r0
+	movs r2, 1
+	lsls r2, 9
+	adds r2, r1, r2
+	mov  sp, r2 ;@ could be done every iteration?
+.thumb_func
+.global core1Server
+.type core1Server, %function
+core1Server: ;@ r0 = lock to give
+	ldr   r5, =SIO_BASE
+	movs  r6, r1
+	movs  r7, r2
 1:
-	ldr  r2, =CORE1_FITH_EXPR_STACK
-	mov  sp, r2 ;@ not technically needed but could allow dirty exits
-	ldr  r2, [r3, #SIO_FIFO_ST] ;@ read fifo status
-	lsrs r2, 1
-	bcc  2f ;@ if fifo has data process it
-	ldr  r2, [r3, #SIO_FIFO_READ] ;@ read the fifo
-	lsrs r0, r2, 16
-	adds r0, r4 ;@ make pointer from top 16 bits
-	;@~ push {r0,r1,r2,r3}
-	;@~ movs r0, r2
-	;@~ bl printWord
-	;@~ pop  {r0,r1,r2,r3}
-	uxth  r2, r2 ;@ lower 16 bits is used to jump to
-	adds  r2, r4
-	blx   r2
-	b    1b
+	ldr   r2, [r5, #SIO_FIFO_ST] ;@ read fifo status
+	lsrs  r2, 1
+	bcc   2f ;@ if fifo has data process it
+	ldr   r2, [r5, #SIO_FIFO_READ] ;@ read the fifo
+	ldr   r0, [r2, #4] ;@ load argument
+	ldr   r2, [r2, #0] ;@ load function
+	blx   r2 ;@ call function
+	movs  r1, r6
+	mov   sp, r7
+	b     1b
 2:
 	wfe
-	b    1b
+	b     1b
 
 .balign 2
 .code 16
@@ -1024,16 +1028,6 @@ armFithEnter: ;@ r0 = TOS r1 = Return SP r2 = Expr SP r3 = target
 .balign 2
 .code 16
 .thumb_func
-.global armFithWrapper
-.type armFithWrapper, %function
-armFithWrapper: ;@ r0 = string r1 = Return SP r2 = Expr SP r3 = target
-	push {r1, r3, lr}
-	bl    armFith
-	pop  {r1, r3, pc}
-
-.balign 2
-.code 16
-.thumb_func
 .global fith_logicalAnd
 .type fith_logicalAnd, %function
 fith_logicalAnd:
@@ -1108,5 +1102,69 @@ fithOnce: ;@ preserve r0, r1, r3
 	adds r2, 7
 	pop  {r0, r1}
 	bx   r2
-	
+
+.balign 2
+.code 16
+.thumb_func
+.global co_yieldWrapper
+.type co_yieldWrapper, %function
+co_yieldWrapper: ;@ r0 = arg, r1 = ToCoroutine
+	push {r1}
+	;@~ push {r0, r1, r2, r3}
+	;@~ movs  r0, r1
+	;@~ bl    printWord
+	;@~ pop  {r0, r1, r2, r3}
+
+.balign 2
+.code 16
+.thumb_func
+.global co_yield
+.type co_yield, %function
+co_yield: ;@ r0 = arg, pop into r2 for ToCoroutine
+	pop  {r2}
+	push {r1, r3, r4, r5, r6, r7, lr}
+	mov   r8, sp
+	mov   sp, r2
+	pop  {r1, r3, r4, r5, r6, r7, pc}
+
+.balign 2
+.code 16
+.thumb_func
+.global co_getFromFith
+.type co_getFromFith, %function
+co_getFromFith:
+	push {r0}
+
+.balign 2
+.code 16
+.thumb_func
+.global co_getFrom
+.type co_getFrom, %function
+co_getFrom:
+	mov   r0, r8
+	bx    lr
+
+.balign 2
+.code 16
+.thumb_func
+.global suspendUartTxOutput
+.type suspendUartTxOutput, %function
+suspendUartTxOutput:
+	push {r1, r2}
+	bl    UartTxOutputEnqueue
+	pop  {r1, r2}
+	bl    core1Server
+
+.balign 2
+.code 16
+.thumb_func
+.global printSP
+.type printSP, %function
+printSP:
+	push {lr}
+	mov  r0, sp
+	bl printWord
+	movs r0, '\n'
+	bl print1Byte
+	pop  {pc}
 	

@@ -462,7 +462,7 @@ mc_wordEndMultiLocal(u16 *fixMe)/*p;*/
 /*e*/void
 mc_wordEnd1Local(u16 *fixMe)/*p;*/
 {
-	*fixMe = armStmia(RET_SP, 7);
+	*fixMe = armStmia(RET_SP, (1<<7));
 	putMachineCode(armSubImm(RET_SP, 4));
 	putMachineCode(armLdrOffset(7, RET_SP, 0));
 	putMachineCode(armBx(14));

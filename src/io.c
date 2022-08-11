@@ -1,10 +1,14 @@
 // io.c
 #include "../localTypes.h"
 
-static u8   uart0Buffer[256];
-static u32  uart0BuffStartIndex;
-static u32  uart0BuffIndex;
-ROMFunctions rom_func;
+static u8       uart0Buffer[256];
+static u32      uart0BuffStartIndex;
+static u32      uart0BuffIndex;
+ROMFunctions    rom_func;
+static Routine *routines;
+static Event    ioEventData    = {armFith, 0 };
+static Event    ioEventTxReady = {txIsReady, 0 };
+static u32      txWait;
 
 /*e*/
 s32
@@ -102,7 +106,57 @@ i2sh(s32 in, u8 *out)/*p;*/
 	return out;
 }
 
+/*e*/
+void
+txIsReady(void)/*p;*/
+{
+	Routine *co = list_removeFirst(&routines);
+	if (co == 0) { return; }
+	void *routine = co->routine;
+	free(co);
+	co_yieldWrapper(0, routine);
+}
+
+/*e*/
+void
+UartTxOutputEnqueue(void)/*p;*/
+{
+	Routine *new = zalloc(sizeof(Routine));
+	new->routine = co_getFrom();
+	if (txWait == 0)
+	{
+		txWait = 1;
+		routines = list_prepend(new, routines);
+	} else {
+		routines = list_append(new, routines);
+	}
+}
+
+static void yieldToNewExecutor(void)
+{
+	void *coroutine = co_create(suspendUartTxOutput);
+	// enter into another executor loop
+	co_yieldWrapper(0, coroutine);
+	txWait = 0;
+	// clean up coroutine
+	co_destroy(co_getFrom());
+}
+
 static void txByte(u32 byte)
+{
+	Uart0MemMap *uart = (void*)UART0_BASE;
+	//~ printAgain:
+	// print buffer is full, wait for space to open in tx fifo
+	while ( txWait || (uart->flags&(1<<5))!=0 )
+	{
+		yieldToNewExecutor();
+	}
+	uart->data = byte;
+	// deal with /r/n sequence
+	//~ if (byte == '\n') { byte = '\r'; goto printAgain; }
+}
+
+static void txByte2(u32 byte)
 {
 	Uart0MemMap *uart = (void*)UART0_BASE;
 	//~ printAgain:
@@ -127,8 +181,8 @@ void io_txByte(u32 byte)/*p;*/
 /*e*/
 void io_prints(u8 *string)/*p;*/
 {
-	asm("CPSID i");
-	os_takeSpinLock(LOCK_UART0_OUT);
+	//~ asm("CPSID i");
+	//~ os_takeSpinLock(LOCK_UART0_OUT);
 	u32 byte = *string++;
 	if (byte != 0)
 	{
@@ -137,15 +191,13 @@ void io_prints(u8 *string)/*p;*/
 			byte = *string++;
 		} while (byte != 0);
 	}
-	os_giveSpinLock(LOCK_UART0_OUT);
-	asm("CPSIE i");
+	//~ os_giveSpinLock(LOCK_UART0_OUT);
+	//~ asm("CPSIE i");
 }
 
 /*e*/
 void io_printsn(u8 *string)/*p;*/
 {
-	asm("CPSID i");
-	os_takeSpinLock(LOCK_UART0_OUT);
 	u32 byte = *string++;
 	if (byte != 0)
 	{
@@ -155,35 +207,25 @@ void io_printsn(u8 *string)/*p;*/
 		} while (byte != 0);
 	}
 	txByte('\n');
-	os_giveSpinLock(LOCK_UART0_OUT);
-	asm("CPSIE i");
 }
 
 /*e*/
 void io_printsl(u8 *string, u32 len)/*p;*/
 {
-	asm("CPSID i");
-	os_takeSpinLock(LOCK_UART0_OUT);
 	for (u32 i = 0; i < len; i++)
 	{
 		txByte(string[i]);
 	}
-	os_giveSpinLock(LOCK_UART0_OUT);
-	asm("CPSIE i");
 }
 
 /*e*/
 void io_printsln(u8 *string, u32 len)/*p;*/
 {
-	asm("CPSID i");
-	os_takeSpinLock(LOCK_UART0_OUT);
 	for (u32 i = 0; i < len; i++)
 	{
 		txByte(string[i]);
 	}
 	txByte('\n');
-	os_giveSpinLock(LOCK_UART0_OUT);
-	asm("CPSIE i");
 }
 
 /*e*/
@@ -258,7 +300,7 @@ static void bufferAndSend(u32 data)
 		// add new line and null terminate
 		uart0Buffer[uart0BuffIndex++] = '\n';
 		uart0Buffer[uart0BuffIndex++] = 0;
-		u32 startOfLine = (u32)&uart0Buffer[uart0BuffStartIndex];
+		u8* startOfLine = &uart0Buffer[uart0BuffStartIndex];
 		if (uart0BuffIndex > 128)
 		{
 			uart0BuffStartIndex = 0;
@@ -266,9 +308,8 @@ static void bufferAndSend(u32 data)
 		} else {
 			uart0BuffStartIndex = uart0BuffIndex;
 		}
-		u32 dataToSend = ((u32)armFithWrapper << 16 >> 16);
-		dataToSend += startOfLine << 16;
-		helper_sendMsg1(dataToSend);
+		ioEventData.data     = startOfLine;
+		helper_sendMsg1((u32)&ioEventData);
 		asm("sev");
 	}
 }
@@ -290,10 +331,20 @@ void isr_Uart0(void)/*p;*/
 	Uart0MemMap *uart = (void*)UART0_BASE;
 	//~ io_printhn(uart->rawIntStatus);
 	// clear the interrupts
+	u32 intStatus = uart->maskedIntStatus;
 	uart->intClear = 0x7FF;
-	// turn off rx because we do NOT want to trigger again until finished
-	uart->intMaskSet = 0;
-	uart0SingleChar(uart);
+	if (intStatus & (1<<5))
+	{
+		helper_sendMsg1((u32)&ioEventTxReady);
+		asm("sev");
+	} else {
+		// set interrupts to tx only because we do NOT want to spawn multiple
+		// tasks all trying to read from the uart. This ensures only one task
+		// is created. Inside of uart0SingleChar we turn back on interrupts
+		// after we have drained the fifo to empty.
+		uart->intMaskSet = (1<<5);
+		uart0SingleChar(uart);
+	}
 }
 
 typedef void *(*rom_table_lookup_fn)(u16 *table, u32 code);

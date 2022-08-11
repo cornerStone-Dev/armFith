@@ -35,6 +35,12 @@ void fithRealloc(void);
 void fithPrintsn(void);
 void fithOnce(void);
 void armFithWrapper(void);
+void core1Server(void);
+void* co_yieldWrapper(void *arg, void *toCoroutine);
+void co_yield(void);
+void* co_getFrom(void);
+void suspendUartTxOutput(void);
+void printSP(void);
 
 
 extern u32 vector_table[];
@@ -122,15 +128,13 @@ void IRtoMachine(
 #define FLASH_BASE        0x10000000
 
 #define END_OF_RAM        ((u32)0x20042000)
-#define SECOND_STACK      ((u32)0x20041000)
+#define SECOND_STACK      ((u32)0x20041D00)
 #define FITH_EXPR_STACK   ((u32)0x20040C00)
 #define FITH_RETURN_STACK ((u32)0x20040804)
 //~ #define END_OF_REG_RAM    ((u32)0x20040000)
-#define END_OF_REG_RAM    ((u32)0x20040804)
+#define END_OF_REG_RAM    ((u32)0x20041C20)
 #define START_OF_REG_RAM  ((u32)0x20010000)
 //~ #define START_OF_REG_RAM  ((u32)0x2000FA90)
-#define FITH_ESP_BASE     ((u32)0x20041000)
-#define FITH_RSP_BASE     SECOND_STACK
 
 typedef struct Uart0MemMap {
 	volatile u32 data;
@@ -291,6 +295,16 @@ typedef struct CompilerContext {
 
 extern CompilerContext c;
 
+typedef struct Routine {
+	struct Routine *next;
+	void           *routine;
+} Routine;
+
+typedef struct Event {
+	void *function;
+	void *data;
+} Event;
+
 enum {
 	EXPR_NULL,
 	EXPR_SMALL_LIT,
@@ -330,6 +344,7 @@ u8* lex(u8 *sourceCode, Token *t);
 #include "inc/list.h"
 #include "inc/armFith.h"
 #include "inc/armV6.h"
+#include "inc/coroutine.h"
 
 
 #endif

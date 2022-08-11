@@ -100,7 +100,7 @@ tree_free(Tree *tree)/*p;*/
 /*e*/void
 tree_print(Tree *tree, u32 indent)/*p;*/
 {
-	if(tree == &nil)
+	if(tree == &nil || tree == 0)
 	{
 		//~ for(u32 i=0; i<indent;i++)
 		//~ {
