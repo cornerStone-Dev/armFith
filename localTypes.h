@@ -262,9 +262,9 @@ typedef struct Block {
 
 typedef struct String {
 	struct String *next;
-	u8            *string;
-	u32            length;
 	u16           *target;
+	u32            length;
+	u8             string[4];
 } String;
 
 typedef struct StringBuff {

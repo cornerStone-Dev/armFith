@@ -58,6 +58,7 @@ void
 helper_sendEvent(void *function, void *data)/*p;*/
 {
 	ProcessorFifo *fifo = (void*)SIO_FIFO_ST;
+	asm("CPSID i"); // disable interrupts
 	u32 index = eventIndex;
 	// reserve current index
 	eventIndex = (index+1) & (NUM_OF_EVENTS-1);
@@ -66,6 +67,7 @@ helper_sendEvent(void *function, void *data)/*p;*/
 	events[index].data     = data;
 	// send pointer to event data
 	fifo->write = (u32)&events[index];
+	asm("CPSIE i"); // enable interrupts
 }
 
 /*e*/

@@ -839,9 +839,10 @@ consumeStringLit(u8 *cursor)/*i;*/
 	
 	// push TOS and output holder code for string
 	mc_pushTos();
-	String *new = zalloc(sizeof(String));
-	new->string = start;
-	new->length = end - start;
+	u32 stringLength = end - start;
+	String *new = zalloc(stringLength + sizeof(String) - 3);
+	new->length = stringLength;
+	rom_func.memcpy(new->string, start, stringLength);
 	new->target = c.compileCursor;
 	putMachineCode(0xBF00);
 	c.stringLits = list_append(new, c.stringLits);
