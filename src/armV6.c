@@ -393,12 +393,14 @@ mc_pushScratch(void)/*i;*/
 /*e*/static void
 mc_popScratch(void)/*i;*/
 {
+	if (c.stackCheck) { callWord((u32)checkedPopStack); }
 	putMachineCode(armPop(1<<SCRATCH));
 }
 
 /*e*/void
 mc_popTos(void)/*p;*/
 {
+	if (c.stackCheck) { callWord((u32)checkedPopStack); }
 	putMachineCode(armPop(1<<TOS));
 }
 
@@ -1396,4 +1398,10 @@ mc_call(void)/*p;*/
 	putMachineCode(armMovs(SCRATCH, TOS));
 	mc_popTos();
 	putMachineCode(armBlx(SCRATCH));
+}
+
+/*e*/void
+checkedPopTosPrint(void)/*p;*/
+{
+	io_printsn("Stack underflow.");
 }

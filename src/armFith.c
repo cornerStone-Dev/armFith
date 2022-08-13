@@ -1263,6 +1263,15 @@ builtInWord5(u8 *start, u8 *cursor, u32 length)/*i;*/
 		callWord((u32)fithAlloc);
 		return start + 5;
 	}
+	if(    (start[0] == 's')
+		&& (start[1] == 'p')
+		&& (start[2] == '-')
+		&& (start[3] == 'o')
+		&& (start[4] == 'n') )
+	{
+		c.stackCheck = 1;
+		return start + 5;
+	}
 	return 0;
 }
 
@@ -1278,6 +1287,16 @@ builtInWord6(u8 *start, u8 *cursor, u32 length)/*i;*/
 		&& (start[5] == 'n') )
 	{
 		compileReturn();
+		return start + 6;
+	}
+	if(    (start[0] == 's')
+		&& (start[1] == 'p')
+		&& (start[2] == '-')
+		&& (start[3] == 'o')
+		&& (start[4] == 'f')
+		&& (start[5] == 'f') )
+	{
+		c.stackCheck = 0;
 		return start + 6;
 	}
 	return 0;

@@ -47,6 +47,7 @@ void* co_getFrom(void);
 void suspendUartTxOutput(void);
 void printSP(void);
 void fithClearStack(void);
+void checkedPopStack(void);
 
 
 extern u32 vector_table[];
@@ -284,6 +285,7 @@ typedef struct CompilerContext {
 	u8          notLeaf;
 	u8          insideParams;
 	u8          lockArmFith;
+	u8          stackCheck;
 	StringBuff *nextLines;
 	Function   *currentFunc;
 	u32        *returnStackBase;

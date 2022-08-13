@@ -1241,4 +1241,24 @@ printSP:
 	movs r0, '\n'
 	bl print1Byte
 	pop  {pc}
-	
+
+.balign 2
+.code 16
+.thumb_func
+.global checkedPopStack
+.type checkedPopStack, %function
+checkedPopStack:
+	push {r0, r1, r2, r3, lr}
+	mov   r0, sp
+	adds  r0, 20
+	lsrs  r0, 9
+	lsrs  r2, r1, 9
+	cmp   r0, r2
+	beq   1f
+	bl    checkedPopTosPrint ;@ print warning
+	ldr   r0, [sp, #16]      ;@ load return address
+	adds  r0, 2              ;@ skip pop_tos instruction
+	str   r0, [sp, #16]      ;@ replace return address
+1:
+	pop  {r0, r1, r2, r3, pc}
+
