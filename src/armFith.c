@@ -91,6 +91,7 @@ enum{
 	WSP=32*CLASS1, // WHITE SPACE
 	NUL=33*CLASS1, // NULL
 	BAD=34*CLASS1, // BAD CHARACTER
+	TYP=35*CLASS1, // TYPE FOR PRINTING
 	//DOT=15*CLASS1, // DOT OR PERIOD
 };
 
@@ -111,7 +112,7 @@ static const unsigned char class[] = {
 /* Cx */  ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,
 /* Dx */  ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,
 /* Ex */  ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,
-/* Fx */  ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP
+/* Fx */  ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,ALP,TYP,TYP,TYP
 };
 
 /*e*/
@@ -172,6 +173,7 @@ armFith(u8 *string)/*p;*/
 	case WSP>>2: { goto loop; }
 	case NUL>>2: { executeOrContinue(1); io_prints("> "); break; }
 	case BAD>>2: { io_prints("Bad input byte detected, aborting\n"); break; }
+	case TYP>>2: { cursor = printInterpolatedString2(cursor); goto loop; }
 }
 	if (current != 0) { free(current); current = 0; }
 	if (c.nextLines)
@@ -967,6 +969,71 @@ createConstant(u8 *start, u32 length)/*i;*/
 	mc_strGlobal((u32*)&word->value);
 }
 
+/*e*/static u8*
+printInterpolatedString1(u8 *start)/*i;*/
+{
+	// move to start of string
+	u8 typeByte = 0xFD;
+	u8 *end = start;
+	if (*end == '%') { end+=1; start = end; goto again2; }
+	// find start of interpolation
+	again:
+	while (*end != '\"' && *end != '%'){ end++; }
+	if (*(end-1) == '\\') { end++; goto again; }
+	// if no interpolation found just regular print
+	if (*end == '\"') { start = consumeStringLit(start); callWord((u32)fithPrintsn); return start; }
+	// check for type specifier
+	
+	if (*(end-1) == 'i') { *(end-1) = '\"'; }
+	if (*(end-1) == 'h') { typeByte = 0xFE; *(end-1) = '\"'; }
+	if (*(end-1) == 's') { typeByte = 0xFF; *(end-1) = '\"'; }
+	// change ending to double quote
+	*end++ = '\"';
+	// consume and output the string clip
+	consumeStringLit(start);
+	callWord((u32)fithPrints);
+	start = end;
+	// re-write internal area
+	again2:
+	while (*end != '%'){ end++; }
+	if (*(end-1) == '\\') { end++; goto again2; }
+	if (*(end+1) == '%') { *end = ' '; end+=2; goto again2; }
+	*end = typeByte;
+	return start;
+}
+
+/*e*/static u8*
+printInterpolatedString2(u8 *start)/*i;*/
+{
+	u8 typeByte = *(start-1);
+	u8 *end = start;
+	
+	// print result
+	switch (typeByte - 0xFD)
+	{
+		case 0:
+		{
+			if (*end == '\"') { callWord((u32)fithPrintin); return end + 1; }
+			callWord((u32)fithPrinti);
+			break;
+		}
+		case 1:
+		{
+			if (*end == '\"') { callWord((u32)fithPrinthn); return end + 1; }
+			callWord((u32)fithPrinth);
+			break;
+		}
+		case 2:
+		{
+			if (*end == '\"') { callWord((u32)fithPrintsn); return end + 1; }
+			callWord((u32)fithPrints);
+			break;
+		}
+	}
+	
+	return printInterpolatedString1(start);
+}
+
 
 // Section Built In Words
 
@@ -999,6 +1066,11 @@ builtInWord1(u8 *start, u8 *cursor, u32 length)/*i;*/
 		callWord((u32)fithClearStack);
 		return start + 1;
 	}
+	if(    (start[0] == '.')
+		&& (start[1] == '"') )
+	{
+		return printInterpolatedString1(start + 2);
+	}
 	return 0;
 }
 
@@ -1017,6 +1089,12 @@ builtInWord2(u8 *start, u8 *cursor, u32 length)/*i;*/
 		&& (start[1] == 'r') )
 	{
 		mc_stackOr();
+		return start + 2;
+	}
+	if(    (start[0] == 'p')
+		&& (start[1] == 's') )
+	{
+		callWord((u32)fithPrints);
 		return start + 2;
 	}
 	return 0;

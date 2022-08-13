@@ -1087,6 +1087,66 @@ fithPrintsn:
 .balign 2
 .code 16
 .thumb_func
+.global fithPrints
+.type fithPrints, %function
+fithPrints:
+	pop  {r2}
+	push {r1, r2, r3, lr}
+	bl   io_prints
+	ldr	r0, [sp, #4]
+	pop  {r1, r2, r3, pc}
+
+.balign 2
+.code 16
+.thumb_func
+.global fithPrinti
+.type fithPrinti, %function
+fithPrinti:
+	pop  {r2}
+	push {r1, r2, r3, lr}
+	bl   io_printi
+	ldr	r0, [sp, #4]
+	pop  {r1, r2, r3, pc}
+
+.balign 2
+.code 16
+.thumb_func
+.global fithPrintin
+.type fithPrintin, %function
+fithPrintin:
+	pop  {r2}
+	push {r1, r2, r3, lr}
+	bl   io_printin
+	ldr	r0, [sp, #4]
+	pop  {r1, r2, r3, pc}
+
+.balign 2
+.code 16
+.thumb_func
+.global fithPrinth
+.type fithPrinth, %function
+fithPrinth:
+	pop  {r2}
+	push {r1, r2, r3, lr}
+	bl   io_printh
+	ldr	r0, [sp, #4]
+	pop  {r1, r2, r3, pc}
+
+.balign 2
+.code 16
+.thumb_func
+.global fithPrinthn
+.type fithPrinthn, %function
+fithPrinthn:
+	pop  {r2}
+	push {r1, r2, r3, lr}
+	bl   io_printhn
+	ldr	r0, [sp, #4]
+	pop  {r1, r2, r3, pc}
+
+.balign 2
+.code 16
+.thumb_func
 .global fithOnce
 .type fithOnce, %function
 fithOnce: ;@ preserve r0, r1, r3
