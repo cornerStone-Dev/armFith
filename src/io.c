@@ -239,7 +239,9 @@ void io_printi(s32 in)/*p;*/
 void io_printh(s32 in)/*p;*/
 {
 	u8 number[16];
-	i2sh(in, number);
+	number[0] = '0';
+	number[1] = 'x';
+	i2sh(in, &number[2]);
 	io_prints(number);
 }
 
@@ -255,7 +257,9 @@ void io_printin(s32 in)/*p;*/
 void io_printhn(s32 in)/*p;*/
 {
 	u8 number[16];
-	i2sh(in, number);
+	number[0] = '0';
+	number[1] = 'x';
+	i2sh(in, &number[2]);
 	io_printsn(number);
 }
 

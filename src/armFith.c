@@ -461,6 +461,7 @@ consumeAlpha(u8 *cursor)/*i;*/
 	byte = class[*cursor] >> 2;
 	switch (byte)
 {
+	//~ case PLU>>2: { cursor = compileAmp(cursor); break; }
 	//~ case AMP>>2: { cursor = compileAmp(cursor); break; }
 	//~ case MIN>>2: { cursor = compileMin(start, cursor); break; }
 	case SCO>>2: { cursor++; createVar(start, wordLength); goto done; }
