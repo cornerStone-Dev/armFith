@@ -1262,3 +1262,16 @@ checkedPopStack:
 1:
 	pop  {r0, r1, r2, r3, pc}
 
+.balign 2
+.code 16
+.thumb_func
+.global fithAddEqualsGlobal
+.type fithAddEqualsGlobal, %function
+fithAddEqualsGlobal: ;@ r0 = value to add r2 = address of global
+	push {r1}
+	ldr   r1, [r2]
+	adds  r0, r1
+	str   r0, [r2]
+	pop  {r1}
+	pop  {r0}
+	bx    lr

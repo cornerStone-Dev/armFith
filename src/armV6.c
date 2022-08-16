@@ -1300,6 +1300,17 @@ mc_ldrGlobal(u32 *globalAddr)/*p;*/
 	putMachineCode(armLdrOffset(TOS, SCRATCH, 0));
 }
 
+/*e*/void
+mc_addEqualsGlobal(u32 *globalAddr)/*p;*/
+{
+	// load address
+	mc_largeIntLit((u32)globalAddr);
+	// put it into scratch instead of TOS
+	c.largeIntConsts->putInScratch = 1;
+	// do the rest in here
+	callWord((u32)fithAddEqualsGlobal);
+}
+
 /*e*/u32*
 mc_createGlobal(void)/*p;*/
 {
@@ -1341,6 +1352,31 @@ mc_ldrLocal(u32 localNum)/*p;*/
 {
 	mc_pushTos();
 	putMachineCode(armMovs(TOS, localNum));
+}
+
+/*e*/void
+mc_addEqualsLocal(u32 localNum)/*p;*/
+{
+	u32 prevCode = *(c.compileCursor-1);
+	if ( (prevCode>>8) == 32)
+	{
+		// we just pushed a small constant, re-write
+		c.compileCursor -= 2;
+		u32 val = (prevCode<<24)>>24;
+		// TODO can optimize val <= 7 and local to add with load
+		putMachineCode(armAddImm(localNum, val));
+		return;
+	}
+	if ( ((prevCode>>6) == 0x00) )
+	{
+		// we just pushed a local, re-write
+		c.compileCursor -= 2;
+		u32 src = prevCode>>3;
+		putMachineCode(armAdd3(localNum,localNum,src));
+		return;
+	}
+	putMachineCode(armAdd3(localNum,localNum,TOS));
+	mc_popTos();
 }
 
 /*e*/static u32

@@ -220,6 +220,7 @@ compileAmp(u8 *cursor)/*i;*/
 	}
 	return cursor;
 }
+
 /*e*/static u8*
 compileLth(u8 *cursor)/*i;*/
 {
@@ -370,6 +371,35 @@ compileCond(u32 cond)/*i;*/
 	}
 }
 
+/*e*/static u8*
+compilePostfixPlu(u8 *cursor, u8* start, u32 wordLength)/*i;*/
+{
+	Tree *word = resolveWord(start, wordLength);
+	if (word == 0) { return cursor; }
+	if(cursor[1] == '=')
+	{
+		cursor+=2;
+		switch (word->type)
+		{
+			case WORD_FUNCTION:
+			case WORD_INLINE_FUNCTION1:
+			case WORD_INLINE_FUNCTION2:
+			io_prints("Error: cannot add to a function word.\n");
+			break;
+			case WORD_GLOBAL:
+			mc_addEqualsGlobal(word->value);
+			break;
+			case WORD_CONSTANT:
+			io_prints("Error: cannot add to a constant.\n");
+			break;
+			case WORD_LOCAL:
+			mc_addEqualsLocal((u32)word->value);
+			break;
+		}
+	}
+	return cursor;
+}
+
 /*e*/static void
 compileDoLoopEnd(u32 cond)/*i;*/
 {
@@ -461,7 +491,7 @@ consumeAlpha(u8 *cursor)/*i;*/
 	byte = class[*cursor] >> 2;
 	switch (byte)
 {
-	//~ case PLU>>2: { cursor = compileAmp(cursor); break; }
+	case PLU>>2: { cursor = compilePostfixPlu(cursor, start, wordLength); goto done; }
 	//~ case AMP>>2: { cursor = compileAmp(cursor); break; }
 	//~ case MIN>>2: { cursor = compileMin(start, cursor); break; }
 	case SCO>>2: { cursor++; createVar(start, wordLength); goto done; }
@@ -480,50 +510,49 @@ consumeAlpha(u8 *cursor)/*i;*/
 		createLocal(start, wordLength);
 		goto done;
 	}
-	// check for locals
-	Tree *local = tree_find(c.locals, start, wordLength);
-	if (local)
+	Tree *word = resolveWord(start, wordLength);
+	if (word != 0)
 	{
-		if (local->type == WORD_LOCAL)
+		u16 *code;
+		switch (word->type)
 		{
-			mc_ldrLocal((u32)local->value);
-		} else {
-			mc_integerLit((u32)local->value);
-		}
-	} else {
-		// check global words
-		Tree *word = tree_find(c.globals, start, wordLength);
-		if (word)
-		{
-			u16 *code;
-			switch (word->type)
-			{
-				case WORD_FUNCTION:
-				callWord((u32)word->value);
-				break;
-				case WORD_INLINE_FUNCTION1:
-				code = (u16*)((u32)word->value-1);
-				putMachineCode(*code);
-				break;
-				case WORD_INLINE_FUNCTION2:
-				code = (u16*)((u32)word->value-1);
-				putMachineCode(*code++);
-				putMachineCode(*code);
-				break;
-				case WORD_GLOBAL:
-				mc_ldrGlobal(word->value);
-				break;
-				case WORD_CONSTANT:
-				mc_integerLit((u32)word->value);
-				break;
-			}
-		} else {
-			io_prints("Error: word definition missing.\n");
+			case WORD_FUNCTION:
+			callWord((u32)word->value);
+			break;
+			case WORD_INLINE_FUNCTION1:
+			code = (u16*)((u32)word->value-1);
+			putMachineCode(*code);
+			break;
+			case WORD_INLINE_FUNCTION2:
+			code = (u16*)((u32)word->value-1);
+			putMachineCode(*code++);
+			putMachineCode(*code);
+			break;
+			case WORD_GLOBAL:
+			mc_ldrGlobal(word->value);
+			break;
+			case WORD_CONSTANT:
+			mc_integerLit((u32)word->value);
+			break;
+			case WORD_LOCAL:
+			mc_ldrLocal((u32)word->value);
+			break;
 		}
 	}
 	
 	done:
 	return cursor;
+}
+
+/*e*/static Tree*
+resolveWord(u8 *start, u32 wordLength)/*i;*/
+{
+	// check for locals
+	Tree *word = tree_find(c.locals, start, wordLength);
+	if (word != 0) { return word; }
+	word = tree_find(c.globals, start, wordLength);
+	if (word == 0) { io_prints("Error: word definition missing.\n"); }
+	return word;
 }
 
 /*e*/static void

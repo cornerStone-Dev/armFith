@@ -48,6 +48,7 @@ void suspendUartTxOutput(void);
 void printSP(void);
 void fithClearStack(void);
 void checkedPopStack(void);
+void fithAddEqualsGlobal(void);
 
 
 extern u32 vector_table[];
