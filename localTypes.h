@@ -49,6 +49,14 @@ void printSP(void);
 void fithClearStack(void);
 void checkedPopStack(void);
 void fithAddEqualsGlobal(void);
+void fithSubEqualsGlobal(void);
+void fithMulEqualsGlobal(void);
+void fithOrrEqualsGlobal(void);
+void fithAndEqualsGlobal(void);
+void fithBicEqualsGlobal(void);
+void fithXorEqualsGlobal(void);
+void fithLslsEqualsGlobal(void);
+void fithLsrsEqualsGlobal(void);
 
 
 extern u32 vector_table[];

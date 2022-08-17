@@ -885,6 +885,9 @@ fithMod: ;@ r0 = TOS r1 = Return SP r2 = SCRATCH
 	ldr  r0, [r2, #SIO_REMAINDER]
 	bx   lr
 
+.balign 4
+.ltorg
+
 .balign 2
 .code 16
 .thumb_func
@@ -1272,6 +1275,118 @@ fithAddEqualsGlobal: ;@ r0 = value to add r2 = address of global
 	ldr   r1, [r2]
 	adds  r0, r1
 	str   r0, [r2]
+	pop  {r1}
+	pop  {r0}
+	bx    lr
+
+.balign 2
+.code 16
+.thumb_func
+.global fithSubEqualsGlobal
+.type fithSubEqualsGlobal, %function
+fithSubEqualsGlobal: ;@ r0 = value to add r2 = address of global
+	push {r1}
+	ldr   r1, [r2]
+	subs  r0, r1, r0
+	str   r0, [r2]
+	pop  {r1}
+	pop  {r0}
+	bx    lr
+
+.balign 2
+.code 16
+.thumb_func
+.global fithMulEqualsGlobal
+.type fithMulEqualsGlobal, %function
+fithMulEqualsGlobal: ;@ r0 = value to add r2 = address of global
+	push {r1}
+	ldr   r1, [r2]
+	muls  r0, r1
+	str   r0, [r2]
+	pop  {r1}
+	pop  {r0}
+	bx    lr
+
+.balign 2
+.code 16
+.thumb_func
+.global fithOrrEqualsGlobal
+.type fithOrrEqualsGlobal, %function
+fithOrrEqualsGlobal: ;@ r0 = value to add r2 = address of global
+	push {r1}
+	ldr   r1, [r2]
+	orrs  r0, r1
+	str   r0, [r2]
+	pop  {r1}
+	pop  {r0}
+	bx    lr
+
+.balign 2
+.code 16
+.thumb_func
+.global fithAndEqualsGlobal
+.type fithAndEqualsGlobal, %function
+fithAndEqualsGlobal: ;@ r0 = value to add r2 = address of global
+	push {r1}
+	ldr   r1, [r2]
+	ands  r0, r1
+	str   r0, [r2]
+	pop  {r1}
+	pop  {r0}
+	bx    lr
+
+.balign 2
+.code 16
+.thumb_func
+.global fithBicEqualsGlobal
+.type fithBicEqualsGlobal, %function
+fithBicEqualsGlobal: ;@ r0 = value to add r2 = address of global
+	push {r1}
+	ldr   r1, [r2]
+	bics  r1, r0
+	str   r1, [r2]
+	pop  {r1}
+	pop  {r0}
+	bx    lr
+
+.balign 2
+.code 16
+.thumb_func
+.global fithXorEqualsGlobal
+.type fithXorEqualsGlobal, %function
+fithXorEqualsGlobal: ;@ r0 = value to add r2 = address of global
+	push {r1}
+	ldr   r1, [r2]
+	eors  r1, r0
+	str   r1, [r2]
+	pop  {r1}
+	pop  {r0}
+	bx    lr
+
+.balign 2
+.code 16
+.thumb_func
+.global fithLslsEqualsGlobal
+.type fithLslsEqualsGlobal, %function
+fithLslsEqualsGlobal: ;@ r0 = value to add r2 = address of global
+	push {r1}
+	ldr   r1, [r2]
+	lsls  r1, r0
+	str   r1, [r2]
+	pop  {r1}
+	pop  {r0}
+	bx    lr
+
+.balign 2
+.code 16
+.thumb_func
+.global fithLsrsEqualsGlobal
+.type fithLsrsEqualsGlobal, %function
+fithLsrsEqualsGlobal: ;@ r0 = value to add r2 = address of global
+	push {r1}
+	ldr   r1, [r2]
+	lsrs  r1, r0
+	str   r1, [r2]
 	pop  {r1}
 	pop  {r0}
 	bx    lr

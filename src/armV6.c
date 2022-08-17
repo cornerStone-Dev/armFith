@@ -1311,6 +1311,121 @@ mc_addEqualsGlobal(u32 *globalAddr)/*p;*/
 	callWord((u32)fithAddEqualsGlobal);
 }
 
+/*e*/void
+mc_subEqualsGlobal(u32 *globalAddr)/*p;*/
+{
+	// load address
+	mc_largeIntLit((u32)globalAddr);
+	// put it into scratch instead of TOS
+	c.largeIntConsts->putInScratch = 1;
+	// do the rest in here
+	callWord((u32)fithSubEqualsGlobal);
+}
+
+/*e*/void
+mc_lshEqualsGlobal(u32 *globalAddr)/*p;*/
+{
+	// load address
+	mc_largeIntLit((u32)globalAddr);
+	// put it into scratch instead of TOS
+	c.largeIntConsts->putInScratch = 1;
+	// do the rest in here
+	callWord((u32)fithLslsEqualsGlobal);
+}
+
+/*e*/void
+mc_rshEqualsGlobal(u32 *globalAddr)/*p;*/
+{
+	// load address
+	mc_largeIntLit((u32)globalAddr);
+	// put it into scratch instead of TOS
+	c.largeIntConsts->putInScratch = 1;
+	// do the rest in here
+	callWord((u32)fithLsrsEqualsGlobal);
+}
+
+/*e*/void
+mc_andEqualsGlobal(u32 *globalAddr)/*p;*/
+{
+	// load address
+	mc_largeIntLit((u32)globalAddr);
+	// put it into scratch instead of TOS
+	c.largeIntConsts->putInScratch = 1;
+	// do the rest in here
+	callWord((u32)fithAndEqualsGlobal);
+}
+
+/*e*/void
+mc_bicEqualsGlobal(u32 *globalAddr)/*p;*/
+{
+	// load address
+	mc_largeIntLit((u32)globalAddr);
+	// put it into scratch instead of TOS
+	c.largeIntConsts->putInScratch = 1;
+	// do the rest in here
+	callWord((u32)fithBicEqualsGlobal);
+}
+
+/*e*/void
+mc_xorEqualsGlobal(u32 *globalAddr)/*p;*/
+{
+	// load address
+	mc_largeIntLit((u32)globalAddr);
+	// put it into scratch instead of TOS
+	c.largeIntConsts->putInScratch = 1;
+	// do the rest in here
+	callWord((u32)fithXorEqualsGlobal);
+}
+
+/*e*/void
+mc_orrEqualsGlobal(u32 *globalAddr)/*p;*/
+{
+	// load address
+	mc_largeIntLit((u32)globalAddr);
+	// put it into scratch instead of TOS
+	c.largeIntConsts->putInScratch = 1;
+	// do the rest in here
+	callWord((u32)fithOrrEqualsGlobal);
+}
+
+/*e*/void
+mc_mulEqualsGlobal(u32 *globalAddr)/*p;*/
+{
+	// load address
+	mc_largeIntLit((u32)globalAddr);
+	// put it into scratch instead of TOS
+	c.largeIntConsts->putInScratch = 1;
+	// do the rest in here
+	callWord((u32)fithMulEqualsGlobal);
+}
+
+/*e*/void
+mc_modEqualsGlobal(u32 *globalAddr)/*p;*/
+{
+	// load global
+	mc_ldrGlobal(globalAddr);
+	// swap operators
+	mc_swap();
+	// do the mod operation
+	mc_stackMod();
+	// store global
+	mc_strGlobal(globalAddr);
+}
+
+/*e*/void
+mc_divEqualsGlobal(u32 *globalAddr)/*p;*/
+{
+	// load global
+	mc_ldrGlobal(globalAddr);
+	// swap operators
+	mc_swap();
+	// do the mod operation
+	mc_stackDiv();
+	// store global
+	mc_strGlobal(globalAddr);
+}
+
+
 /*e*/u32*
 mc_createGlobal(void)/*p;*/
 {
@@ -1363,7 +1478,6 @@ mc_addEqualsLocal(u32 localNum)/*p;*/
 		// we just pushed a small constant, re-write
 		c.compileCursor -= 2;
 		u32 val = (prevCode<<24)>>24;
-		// TODO can optimize val <= 7 and local to add with load
 		putMachineCode(armAddImm(localNum, val));
 		return;
 	}
@@ -1377,6 +1491,229 @@ mc_addEqualsLocal(u32 localNum)/*p;*/
 	}
 	putMachineCode(armAdd3(localNum,localNum,TOS));
 	mc_popTos();
+}
+
+/*e*/void
+mc_subEqualsLocal(u32 localNum)/*p;*/
+{
+	u32 prevCode = *(c.compileCursor-1);
+	if ( (prevCode>>8) == 32)
+	{
+		// we just pushed a small constant, re-write
+		c.compileCursor -= 2;
+		u32 val = (prevCode<<24)>>24;
+		putMachineCode(armSubImm(localNum, val));
+		return;
+	}
+	if ( ((prevCode>>6) == 0x00) )
+	{
+		// we just pushed a local, re-write
+		c.compileCursor -= 2;
+		u32 src = prevCode>>3;
+		putMachineCode(armSub3(localNum,localNum,src));
+		return;
+	}
+	putMachineCode(armSub3(localNum,localNum,TOS));
+	mc_popTos();
+}
+
+/*e*/void
+mc_lshEqualsLocal(u32 localNum)/*p;*/
+{
+	u32 prevCode = *(c.compileCursor-1);
+	if ( (prevCode>>8) == 32)
+	{
+		// we just pushed a small constant, re-write
+		c.compileCursor -= 2;
+		u32 val = (prevCode<<24)>>24;
+		putMachineCode(armLslsImm(localNum, localNum, val));
+		return;
+	}
+	if ( ((prevCode>>6) == 0x00) )
+	{
+		// we just pushed a local, re-write
+		c.compileCursor -= 2;
+		u32 src = prevCode>>3;
+		putMachineCode(armLsls(localNum,src));
+		return;
+	}
+	putMachineCode(armLsls(localNum, TOS));
+	mc_popTos();
+}
+
+/*e*/void
+mc_rshEqualsLocal(u32 localNum)/*p;*/
+{
+	u32 prevCode = *(c.compileCursor-1);
+	if ( (prevCode>>8) == 32)
+	{
+		// we just pushed a small constant, re-write
+		c.compileCursor -= 2;
+		u32 val = (prevCode<<24)>>24;
+		putMachineCode(armLsrsImm(localNum, localNum, val));
+		return;
+	}
+	if ( ((prevCode>>6) == 0x00) )
+	{
+		// we just pushed a local, re-write
+		c.compileCursor -= 2;
+		u32 src = prevCode>>3;
+		putMachineCode(armLsrs(localNum,src));
+		return;
+	}
+	putMachineCode(armLsrs(localNum, TOS));
+	mc_popTos();
+}
+
+/*e*/void
+mc_andEqualsLocal(u32 localNum)/*p;*/
+{
+	u32 prevCode = *(c.compileCursor-1);
+	if ( (prevCode>>8) == 32)
+	{
+		// we just pushed a small constant, re-write
+		c.compileCursor -= 2;
+		u32 val = (prevCode<<24)>>24;
+		putMachineCode(armMovImm(SCRATCH, val));
+		putMachineCode(armAnd(localNum, SCRATCH));
+		return;
+	}
+	if ( ((prevCode>>6) == 0x00) )
+	{
+		// we just pushed a local, re-write
+		c.compileCursor -= 2;
+		u32 src = prevCode>>3;
+		putMachineCode(armAnd(localNum,src));
+		return;
+	}
+	putMachineCode(armAnd(localNum,TOS));
+	mc_popTos();
+}
+
+/*e*/void
+mc_bicEqualsLocal(u32 localNum)/*p;*/
+{
+	u32 prevCode = *(c.compileCursor-1);
+	if ( (prevCode>>8) == 32)
+	{
+		// we just pushed a small constant, re-write
+		c.compileCursor -= 2;
+		u32 val = (prevCode<<24)>>24;
+		putMachineCode(armMovImm(SCRATCH, val));
+		putMachineCode(armBic(localNum, SCRATCH));
+		return;
+	}
+	if ( ((prevCode>>6) == 0x00) )
+	{
+		// we just pushed a local, re-write
+		c.compileCursor -= 2;
+		u32 src = prevCode>>3;
+		putMachineCode(armBic(localNum,src));
+		return;
+	}
+	putMachineCode(armBic(localNum,TOS));
+	mc_popTos();
+}
+
+/*e*/void
+mc_xorEqualsLocal(u32 localNum)/*p;*/
+{
+	u32 prevCode = *(c.compileCursor-1);
+	if ( (prevCode>>8) == 32)
+	{
+		// we just pushed a small constant, re-write
+		c.compileCursor -= 2;
+		u32 val = (prevCode<<24)>>24;
+		putMachineCode(armMovImm(SCRATCH, val));
+		putMachineCode(armXor(localNum, SCRATCH));
+		return;
+	}
+	if ( ((prevCode>>6) == 0x00) )
+	{
+		// we just pushed a local, re-write
+		c.compileCursor -= 2;
+		u32 src = prevCode>>3;
+		putMachineCode(armXor(localNum,src));
+		return;
+	}
+	putMachineCode(armXor(localNum,TOS));
+	mc_popTos();
+}
+
+/*e*/void
+mc_orrEqualsLocal(u32 localNum)/*p;*/
+{
+	u32 prevCode = *(c.compileCursor-1);
+	if ( (prevCode>>8) == 32)
+	{
+		// we just pushed a small constant, re-write
+		c.compileCursor -= 2;
+		u32 val = (prevCode<<24)>>24;
+		putMachineCode(armMovImm(SCRATCH, val));
+		putMachineCode(armOr(localNum, SCRATCH));
+		return;
+	}
+	if ( ((prevCode>>6) == 0x00) )
+	{
+		// we just pushed a local, re-write
+		c.compileCursor -= 2;
+		u32 src = prevCode>>3;
+		putMachineCode(armOr(localNum,src));
+		return;
+	}
+	putMachineCode(armOr(localNum,TOS));
+	mc_popTos();
+}
+
+/*e*/void
+mc_mulEqualsLocal(u32 localNum)/*p;*/
+{
+	u32 prevCode = *(c.compileCursor-1);
+	if ( (prevCode>>8) == 32)
+	{
+		// we just pushed a small constant, re-write
+		c.compileCursor -= 2;
+		u32 val = (prevCode<<24)>>24;
+		putMachineCode(armMovImm(SCRATCH, val));
+		putMachineCode(armMul(localNum, SCRATCH));
+		return;
+	}
+	if ( ((prevCode>>6) == 0x00) )
+	{
+		// we just pushed a local, re-write
+		c.compileCursor -= 2;
+		u32 src = prevCode>>3;
+		putMachineCode(armMul(localNum,src));
+		return;
+	}
+	putMachineCode(armMul(localNum,TOS));
+	mc_popTos();
+}
+
+/*e*/void
+mc_modEqualsLocal(u32 localNum)/*p;*/
+{
+	// load local
+	mc_ldrLocal(localNum);
+	// swap operators
+	mc_swap();
+	// do the mod operation
+	mc_stackMod();
+	// store local
+	mc_strLocal(localNum);
+}
+
+/*e*/void
+mc_divEqualsLocal(u32 localNum)/*p;*/
+{
+	// load local
+	mc_ldrLocal(localNum);
+	// swap operators
+	mc_swap();
+	// do the mod operation
+	mc_stackDiv();
+	// store local
+	mc_strLocal(localNum);
 }
 
 /*e*/static u32

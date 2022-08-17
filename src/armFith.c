@@ -400,6 +400,288 @@ compilePostfixPlu(u8 *cursor, u8* start, u32 wordLength)/*i;*/
 	return cursor;
 }
 
+/*e*/static u8*
+compilePostfixMin(u8 *cursor, u8* start, u32 wordLength)/*i;*/
+{
+	Tree *word = resolveWord(start, wordLength);
+	if (word == 0) { return cursor; }
+	if(cursor[1] == '=')
+	{
+		cursor+=2;
+		switch (word->type)
+		{
+			case WORD_FUNCTION:
+			case WORD_INLINE_FUNCTION1:
+			case WORD_INLINE_FUNCTION2:
+			io_prints("Error: cannot add to a function word.\n");
+			break;
+			case WORD_GLOBAL:
+			mc_subEqualsGlobal(word->value);
+			break;
+			case WORD_CONSTANT:
+			io_prints("Error: cannot add to a constant.\n");
+			break;
+			case WORD_LOCAL:
+			mc_subEqualsLocal((u32)word->value);
+			break;
+		}
+	}
+	return cursor;
+}
+
+/*e*/static u8*
+compilePostfixAmp(u8 *cursor, u8* start, u32 wordLength)/*i;*/
+{
+	Tree *word = resolveWord(start, wordLength);
+	if (word == 0) { return cursor; }
+	if(cursor[1] == '=')
+	{
+		cursor+=2;
+		switch (word->type)
+		{
+			case WORD_FUNCTION:
+			case WORD_INLINE_FUNCTION1:
+			case WORD_INLINE_FUNCTION2:
+			io_prints("Error: cannot operate on a function word.\n");
+			break;
+			case WORD_GLOBAL:
+			mc_andEqualsGlobal(word->value);
+			break;
+			case WORD_CONSTANT:
+			io_prints("Error: cannot operate on a constant.\n");
+			break;
+			case WORD_LOCAL:
+			mc_andEqualsLocal((u32)word->value);
+			break;
+		}
+	} else if( (cursor[1] == '~') && (cursor[2] == '=') )
+	{
+		cursor+=3;
+		switch (word->type)
+		{
+			case WORD_FUNCTION:
+			case WORD_INLINE_FUNCTION1:
+			case WORD_INLINE_FUNCTION2:
+			io_prints("Error: cannot operate on a function word.\n");
+			break;
+			case WORD_GLOBAL:
+			mc_bicEqualsGlobal(word->value);
+			break;
+			case WORD_CONSTANT:
+			io_prints("Error: cannot operate on a constant.\n");
+			break;
+			case WORD_LOCAL:
+			mc_bicEqualsLocal((u32)word->value);
+			break;
+		}
+	}
+	return cursor;
+}
+
+/*e*/static u8*
+compilePostfixCar(u8 *cursor, u8* start, u32 wordLength)/*i;*/
+{
+	Tree *word = resolveWord(start, wordLength);
+	if (word == 0) { return cursor; }
+	if(cursor[1] == '=')
+	{
+		cursor+=2;
+		switch (word->type)
+		{
+			case WORD_FUNCTION:
+			case WORD_INLINE_FUNCTION1:
+			case WORD_INLINE_FUNCTION2:
+			io_prints("Error: cannot operate on a function word.\n");
+			break;
+			case WORD_GLOBAL:
+			mc_xorEqualsGlobal(word->value);
+			break;
+			case WORD_CONSTANT:
+			io_prints("Error: cannot operate on a constant.\n");
+			break;
+			case WORD_LOCAL:
+			mc_xorEqualsLocal((u32)word->value);
+			break;
+		}
+	}
+	return cursor;
+}
+
+/*e*/static u8*
+compilePostfixLin(u8 *cursor, u8* start, u32 wordLength)/*i;*/
+{
+	Tree *word = resolveWord(start, wordLength);
+	if (word == 0) { return cursor; }
+	if(cursor[1] == '=')
+	{
+		cursor+=2;
+		switch (word->type)
+		{
+			case WORD_FUNCTION:
+			case WORD_INLINE_FUNCTION1:
+			case WORD_INLINE_FUNCTION2:
+			io_prints("Error: cannot operate on a function word.\n");
+			break;
+			case WORD_GLOBAL:
+			mc_orrEqualsGlobal(word->value);
+			break;
+			case WORD_CONSTANT:
+			io_prints("Error: cannot operate on a constant.\n");
+			break;
+			case WORD_LOCAL:
+			mc_orrEqualsLocal((u32)word->value);
+			break;
+		}
+	}
+	return cursor;
+}
+
+/*e*/static u8*
+compilePostfixSta(u8 *cursor, u8* start, u32 wordLength)/*i;*/
+{
+	Tree *word = resolveWord(start, wordLength);
+	if (word == 0) { return cursor; }
+	if(cursor[1] == '=')
+	{
+		cursor+=2;
+		switch (word->type)
+		{
+			case WORD_FUNCTION:
+			case WORD_INLINE_FUNCTION1:
+			case WORD_INLINE_FUNCTION2:
+			io_prints("Error: cannot operate on a function word.\n");
+			break;
+			case WORD_GLOBAL:
+			mc_mulEqualsGlobal(word->value);
+			break;
+			case WORD_CONSTANT:
+			io_prints("Error: cannot operate on a constant.\n");
+			break;
+			case WORD_LOCAL:
+			mc_mulEqualsLocal((u32)word->value);
+			break;
+		}
+	}
+	return cursor;
+}
+
+/*e*/static u8*
+compilePostfixPrc(u8 *cursor, u8* start, u32 wordLength)/*i;*/
+{
+	Tree *word = resolveWord(start, wordLength);
+	if (word == 0) { return cursor; }
+	if(cursor[1] == '=')
+	{
+		cursor+=2;
+		switch (word->type)
+		{
+			case WORD_FUNCTION:
+			case WORD_INLINE_FUNCTION1:
+			case WORD_INLINE_FUNCTION2:
+			io_prints("Error: cannot operate on a function word.\n");
+			break;
+			case WORD_GLOBAL:
+			mc_modEqualsGlobal(word->value);
+			break;
+			case WORD_CONSTANT:
+			io_prints("Error: cannot operate on a constant.\n");
+			break;
+			case WORD_LOCAL:
+			mc_modEqualsLocal((u32)word->value);
+			break;
+		}
+	}
+	return cursor;
+}
+
+/*e*/static u8*
+compilePostfixDiv(u8 *cursor, u8* start, u32 wordLength)/*i;*/
+{
+	Tree *word = resolveWord(start, wordLength);
+	if (word == 0) { return cursor; }
+	if(cursor[1] == '=')
+	{
+		cursor+=2;
+		switch (word->type)
+		{
+			case WORD_FUNCTION:
+			case WORD_INLINE_FUNCTION1:
+			case WORD_INLINE_FUNCTION2:
+			io_prints("Error: cannot operate on a function word.\n");
+			break;
+			case WORD_GLOBAL:
+			mc_divEqualsGlobal(word->value);
+			break;
+			case WORD_CONSTANT:
+			io_prints("Error: cannot operate on a constant.\n");
+			break;
+			case WORD_LOCAL:
+			mc_divEqualsLocal((u32)word->value);
+			break;
+		}
+	}
+	return cursor;
+}
+
+/*e*/static u8*
+compilePostfixLth(u8 *cursor, u8* start, u32 wordLength)/*i;*/
+{
+	Tree *word = resolveWord(start, wordLength);
+	if (word == 0) { return cursor; }
+	if(cursor[1] == '=')
+	{
+		cursor+=2;
+		switch (word->type)
+		{
+			case WORD_FUNCTION:
+			case WORD_INLINE_FUNCTION1:
+			case WORD_INLINE_FUNCTION2:
+			io_prints("Error: cannot add to a function word.\n");
+			break;
+			case WORD_GLOBAL:
+			mc_lshEqualsGlobal(word->value);
+			break;
+			case WORD_CONSTANT:
+			io_prints("Error: cannot add to a constant.\n");
+			break;
+			case WORD_LOCAL:
+			mc_lshEqualsLocal((u32)word->value);
+			break;
+		}
+	}
+	return cursor;
+}
+
+/*e*/static u8*
+compilePostfixGth(u8 *cursor, u8* start, u32 wordLength)/*i;*/
+{
+	Tree *word = resolveWord(start, wordLength);
+	if (word == 0) { return cursor; }
+	if(cursor[1] == '=')
+	{
+		cursor+=2;
+		switch (word->type)
+		{
+			case WORD_FUNCTION:
+			case WORD_INLINE_FUNCTION1:
+			case WORD_INLINE_FUNCTION2:
+			io_prints("Error: cannot add to a function word.\n");
+			break;
+			case WORD_GLOBAL:
+			mc_rshEqualsGlobal(word->value);
+			break;
+			case WORD_CONSTANT:
+			io_prints("Error: cannot add to a constant.\n");
+			break;
+			case WORD_LOCAL:
+			mc_rshEqualsLocal((u32)word->value);
+			break;
+		}
+	}
+	return cursor;
+}
+
+
 /*e*/static void
 compileDoLoopEnd(u32 cond)/*i;*/
 {
@@ -491,15 +773,20 @@ consumeAlpha(u8 *cursor)/*i;*/
 	byte = class[*cursor] >> 2;
 	switch (byte)
 {
+	case DIV>>2: { cursor = compilePostfixDiv(cursor, start, wordLength); goto done; }
+	case PRC>>2: { cursor = compilePostfixPrc(cursor, start, wordLength); goto done; }
+	case STA>>2: { cursor = compilePostfixSta(cursor, start, wordLength); goto done; }
+	case LIN>>2: { cursor = compilePostfixLin(cursor, start, wordLength); goto done; }
+	case CAR>>2: { cursor = compilePostfixCar(cursor, start, wordLength); goto done; }
 	case PLU>>2: { cursor = compilePostfixPlu(cursor, start, wordLength); goto done; }
-	//~ case AMP>>2: { cursor = compileAmp(cursor); break; }
-	//~ case MIN>>2: { cursor = compileMin(start, cursor); break; }
+	case AMP>>2: { cursor = compilePostfixAmp(cursor, start, wordLength); goto done; }
+	case MIN>>2: { cursor = compilePostfixMin(cursor, start, wordLength); goto done; }
 	case SCO>>2: { cursor++; createVar(start, wordLength); goto done; }
 	case COL>>2: { cursor++; createConstant(start, wordLength); goto done; }
 	case ATS>>2: { cursor++; pushAddressOf(start, wordLength); goto done; }
 	case LPA>>2: { cursor++; createWordFunction(start, wordLength); c.insideParams = 1; goto done; }
-	//~ case LTH>>2: { cursor = compileLth(cursor); break; }// shift
-	//~ case GTH>>2: { cursor = compileGth(cursor); break; } // shift
+	case LTH>>2: { cursor = compilePostfixLth(cursor, start, wordLength); goto done; }
+	case GTH>>2: { cursor = compilePostfixGth(cursor, start, wordLength); goto done; }
 	case EQU>>2: { cursor++; assignVar(start, wordLength);goto done; }
 	case LBL>>2: { cursor++; createWordFunction(start, wordLength); goto done; }
 	default : break;
