@@ -57,6 +57,9 @@ void fithBicEqualsGlobal(void);
 void fithXorEqualsGlobal(void);
 void fithLslsEqualsGlobal(void);
 void fithLsrsEqualsGlobal(void);
+void fithCommaS32(void);
+void fithCommaU16(void);
+void fithCommaU8(void);
 
 
 extern u32 vector_table[];
@@ -295,6 +298,7 @@ typedef struct CompilerContext {
 	u8          insideParams;
 	u8          lockArmFith;
 	u8          stackCheck;
+	u8          commaState;
 	StringBuff *nextLines;
 	Function   *currentFunc;
 	u32        *returnStackBase;

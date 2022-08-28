@@ -157,7 +157,7 @@ armFith(u8 *string)/*p;*/
 	case LBL>>2: { advComileStub(0); goto loop; }
 	case HAS>>2: { cursor = compileHas(cursor); goto loop; }
 	case TIC>>2: { io_prints("Invalid starting character, aborting\n"); break; }
-	case COM>>2: { io_prints("Invalid starting character, aborting\n"); break; }
+	case COM>>2: { compileComma(); goto loop; }
 	case RBL>>2: { cursor = compileRbl(cursor); goto loop; }
 	case DOL>>2: { cursor = compileDol(cursor); goto loop; }
 	case LBR>>2: { advComileStub(77); goto loop; }
@@ -194,6 +194,29 @@ consumeNumLit(u8 *cursor)/*i;*/
 	s32 val = s2i(cursor - 1, &newCursor);
 	mc_integerLit(val);
 	return newCursor;
+}
+
+/*e*/static void
+compileComma()/*i;*/
+{
+	switch (c.commaState)
+	{
+		case 0:
+		{
+			callWord((u32)fithCommaS32);
+			break;
+		}
+		case 1:
+		{
+			callWord((u32)fithCommaU16);
+			break;
+		}
+		case 2:
+		{
+			callWord((u32)fithCommaU8);
+			break;
+		}
+	}
 }
 
 /*e*/static u8*
@@ -1414,6 +1437,12 @@ builtInWord2(u8 *start, u8 *cursor, u32 length)/*i;*/
 		callWord((u32)fithPrints);
 		return start + 2;
 	}
+	if(    (start[0] == 'u')
+		&& (start[1] == '8') )
+	{
+		c.commaState = 2;
+		return start + 2;
+	}
 	return 0;
 }
 
@@ -1460,6 +1489,20 @@ builtInWord3(u8 *start, u8 *cursor, u32 length)/*i;*/
 		&& (start[2] == 'n') )
 	{
 		callWord((u32)fithPrintsn);
+		return start + 3;
+	}
+	if(    (start[0] == 'u')
+		&& (start[1] == '1')
+		&& (start[2] == '6') )
+	{
+		c.commaState = 1;
+		return start + 3;
+	}
+	if(    (start[0] == 's')
+		&& (start[1] == '3')
+		&& (start[2] == '2') )
+	{
+		c.commaState = 0;
 		return start + 3;
 	}
 	return 0;

@@ -1390,3 +1390,42 @@ fithLsrsEqualsGlobal: ;@ r0 = value to add r2 = address of global
 	pop  {r1}
 	pop  {r0}
 	bx    lr
+
+.balign 2
+.code 16
+.thumb_func
+.global fithCommaU8
+.type fithCommaU8, %function
+fithCommaU8: ;@ r0 = value to store r2 = address location
+	pop  {r2}
+	strb  r0, [r2]
+	adds  r0, r2, 1
+	bx    lr
+
+.balign 2
+.code 16
+.thumb_func
+.global fithCommaU16
+.type fithCommaU16, %function
+fithCommaU16: ;@ r0 = value to store r2 = address location
+	pop  {r2}
+	adds  r2, 1
+	lsrs  r2, 1
+	lsls  r2, 1
+	strh  r0, [r2]
+	adds  r0, r2, 2
+	bx    lr
+
+.balign 2
+.code 16
+.thumb_func
+.global fithCommaS32
+.type fithCommaS32, %function
+fithCommaS32: ;@ r0 = value to store r2 = address location
+	pop  {r2}
+	adds  r2, 3
+	lsrs  r2, 2
+	lsls  r2, 2
+	str   r0, [r2]
+	adds  r0, r2, 4
+	bx    lr
