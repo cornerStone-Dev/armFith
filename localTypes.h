@@ -69,7 +69,7 @@ extern u32 boot2Entry[];
 extern u16 testThreadData[];
 extern u16 testPrintThread[];
 extern u16 fith_defs[];
-extern u8 enter[];
+extern u8  enter[];
 //~ typedef struct FithState FithState;
 
 void ParseFree(
@@ -332,6 +332,11 @@ typedef struct Event {
 	void *function;
 	void *data;
 } Event;
+
+typedef struct ByteStream {
+	struct ByteStream *next;
+	u8                 data[124];
+} ByteStream;
 
 enum {
 	EXPR_NULL,

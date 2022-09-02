@@ -5,9 +5,12 @@ static u8       uart0Buffer[256];
 static u32      uart0BuffStartIndex;
 static u32      uart0BuffIndex;
 ROMFunctions    rom_func;
-static Routine *routines;
-static Event    ioEventTxReady = {txIsReady, 0 };
-static u32      txWait;
+static Event    ioEventTxReady = {fromStream, 0 };
+static ByteStream *toByteStream;
+static ByteStream *fromByteStream;
+static u32         toIndex;
+static u32         fromIndex;
+
 
 /*e*/
 s32
@@ -105,63 +108,46 @@ i2sh(s32 in, u8 *out)/*p;*/
 	return out;
 }
 
-/*e*/
-void
-txIsReady(void)/*p;*/
+static void io_StreamInit(void)
 {
-	Routine *co = list_removeFirst(&routines);
-	if (co == 0) { return; }
-	void *routine = co->routine;
-	free(co);
-	co_yieldWrapper(0, routine);
+	toByteStream = zalloc(sizeof(ByteStream));
+	fromByteStream = toByteStream;
 }
 
-/*e*/
-void
-UartTxOutputEnqueue(void)/*p;*/
+static void toStream(u32 byte)
 {
-	Routine *new = zalloc(sizeof(Routine));
-	new->routine = co_getFrom();
-	if (txWait == 0)
+	if (toIndex == 124)
 	{
-		txWait = 1;
-		routines = list_prepend(new, routines);
-	} else {
-		routines = list_append(new, routines);
+		toByteStream->next = zalloc(sizeof(ByteStream));
+		toByteStream = toByteStream->next;
+		toIndex = 0;
 	}
+	toByteStream->data[toIndex++] = byte;
 }
-
-static void yieldToNewExecutor(void)
+/*e*/
+void fromStream(void)/*p;*/
 {
-	void *coroutine = co_create(suspendUartTxOutput);
-	// enter into another executor loop
-	co_yieldWrapper(0, coroutine);
-	txWait = 0;
-	// clean up coroutine
-	co_destroy(co_getFrom());
+	Uart0MemMap *uart = (void*)UART0_BASE;
+	while (1)
+	{
+		if ( (uart->flags&(1<<5))!=0 ) { break; } // tx fifo full, leave
+		if (fromIndex == toIndex && fromByteStream == toByteStream) { break; }
+		if (fromIndex == 124)
+		{
+			ByteStream *finishedStream = fromByteStream;
+			fromByteStream = fromByteStream->next;
+			free(finishedStream);
+			fromIndex = 0;
+		}
+		uart->data = fromByteStream->data[fromIndex++];		
+	}
 }
 
 static void txByte(u32 byte)
 {
-	Uart0MemMap *uart = (void*)UART0_BASE;
 	//~ printAgain:
-	// print buffer is full, wait for space to open in tx fifo
-	while ( txWait || (uart->flags&(1<<5))!=0 )
-	{
-		yieldToNewExecutor();
-	}
-	uart->data = byte;
-	// deal with /r/n sequence
-	//~ if (byte == '\n') { byte = '\r'; goto printAgain; }
-}
-
-static void txByte2(u32 byte)
-{
-	Uart0MemMap *uart = (void*)UART0_BASE;
-	//~ printAgain:
-	// print buffer is full, wait for space to open in tx fifo
-	while ((uart->flags&(1<<5))!=0) { }
-	uart->data = byte;
+	toStream(byte);
+	fromStream();
 	// deal with /r/n sequence
 	//~ if (byte == '\n') { byte = '\r'; goto printAgain; }
 }
@@ -169,11 +155,11 @@ static void txByte2(u32 byte)
 /*e*/
 void io_txByte(u32 byte)/*p;*/
 {
-	asm("CPSID i");
-	os_takeSpinLock(LOCK_UART0_OUT);
+	//~ asm("CPSID i");
+	//~ os_takeSpinLock(LOCK_UART0_OUT);
 	txByte(byte);
-	os_giveSpinLock(LOCK_UART0_OUT);
-	asm("CPSIE i");
+	//~ os_giveSpinLock(LOCK_UART0_OUT);
+	//~ asm("CPSIE i");
 }
 
 
@@ -414,6 +400,8 @@ void picoInit(void)/*p;*/
 	//~ enableWatchDogTick();
 	//~ timerInit();
 	loadRomFuncAddrs();
+	
+	io_StreamInit();
 	
 	
 	// set up flash

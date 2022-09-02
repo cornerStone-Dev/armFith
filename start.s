@@ -442,8 +442,8 @@ flashEntry:
 	bl setZeroWait ;@ until there is enough time to rip through both stacks
 	bl   memSysInit
 	bl   helper_unlock
-	bl   armFithInit
 	bl   picoInit
+	bl   armFithInit
 	;@~ bl   createFirstProcess
 	ldr  r1,=CORE0_FITH_RETURN_STACK  ;@INITIAL_STACK
 1:  wfe
@@ -1220,17 +1220,6 @@ co_getFromFith:
 co_getFrom:
 	mov   r0, r8
 	bx    lr
-
-.balign 2
-.code 16
-.thumb_func
-.global suspendUartTxOutput
-.type suspendUartTxOutput, %function
-suspendUartTxOutput:
-	push {r1, r2}
-	bl    UartTxOutputEnqueue
-	pop  {r1, r2}
-	bl    core1Server
 
 .balign 2
 .code 16
