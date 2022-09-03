@@ -6,6 +6,7 @@ CompilerContext c;
 
 //~ typedef long long (*fithFunc)(u32 tosValue, u32 *returnStackPointer, u32 *exprStackPointer, void *target);
 
+
 /*e*/
 void
 armFithInit(void)/*p;*/
@@ -758,9 +759,8 @@ fithPushValTos(u32 val)/*p;*/
 
 /*e*/
 void
-printFithStackElements(u32 tos, u32 *sp)/*p;*/
-{	
-	u32 *base = c.exprStackBase;
+printFithStackElements(u32 tos, u32 *sp, u32 *base)/*p;*/
+{
 	if (base != sp)
 	{
 		base-=2;
@@ -1389,6 +1389,7 @@ builtInCompileWord(u8 *start, u8 *cursor, u32 length)/*i;*/
 		case 5:  return builtInWord5(start, cursor, length);
 		case 6:  return builtInWord6(start, cursor, length);
 		case 7:  return builtInWord7(start, cursor, length);
+		case 9:  return builtInWord9(start, cursor, length);
 		default: return 0;
 	}
 }
@@ -1687,6 +1688,38 @@ builtInWord7(u8 *start, u8 *cursor, u32 length)/*i;*/
 		// output jump to start of function without rebuilding call stack
 		putMachineCode(armBranch(&c.compileBase[2] - c.compileCursor - 2));
 		return start + 7;
+	}
+	return 0;
+}
+
+/*e*/static u8*
+builtInWord9(u8 *start, u8 *cursor, u32 length)/*i;*/
+{
+	if(    (start[0] == 'c')
+		&& (start[1] == 'o')
+		&& (start[2] == '-')
+		&& (start[3] == 'c')
+		&& (start[4] == 'r')
+		&& (start[5] == 'e')
+		&& (start[6] == 'a')
+		&& (start[7] == 't')
+		&& (start[8] == 'e') )
+	{
+		callWord((u32)fithCoCreate);
+		return start + 9;
+	}
+	if(    (start[0] == 'c')
+		&& (start[1] == 'o')
+		&& (start[2] == '-')
+		&& (start[3] == 'r')
+		&& (start[4] == 'e')
+		&& (start[5] == 't')
+		&& (start[6] == 'u')
+		&& (start[7] == 'r')
+		&& (start[8] == 'n') )
+	{
+		callWord((u32)co_return);
+		return start + 9;
 	}
 	return 0;
 }

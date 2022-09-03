@@ -60,6 +60,10 @@ void fithLsrsEqualsGlobal(void);
 void fithCommaS32(void);
 void fithCommaU16(void);
 void fithCommaU8(void);
+void co_call(void);
+void asm_wrapper(void);
+void* co_return(void*);
+void* fithCoCreate(void*);
 
 
 extern u32 vector_table[];

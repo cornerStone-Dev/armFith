@@ -1010,8 +1010,11 @@ __gnu_thumb1_case_si:
 .type printFithStack, %function
 printFithStack: ;@ r0 = TOS r1 = Return SP r2 = SCRATCH SP = EXPR_SP
 	push {r0, r1, r3, lr}
-	add  r1, sp, #16
-	bl   printFithStackElements
+	add   r1, sp, #16
+	add   r2, sp, #496
+	lsrs  r2, 9
+	lsls  r2, 9
+	bl    printFithStackElements
 	pop  {r0, r1, r3, pc}
 
 .balign 2
@@ -1172,13 +1175,57 @@ fithOnce: ;@ preserve r0, r1, r3
 .global fithClearStack
 .type fithClearStack, %function
 fithClearStack:
-	mov   r2, sp
-	adds  r2, 248
-	adds  r2, 248
+	add   r2, sp, 496
 	lsrs  r2, 9
 	lsls  r2, 9
 	mov   sp, r2
 	bx    lr
+
+.balign 2
+.code 16
+.thumb_func
+.global co_call
+.type co_call, %function
+co_call: ;@ r0 = arg, r2 = addr of stack addresses in coroutine
+	mov   r1, sp
+	str   r1, [r2, #0]
+	ldr   r1, [r2, #4]
+	mov   sp, r1
+	pop  {r1, r3, r4, r5, r6, r7, pc}
+
+.balign 2
+.code 16
+.thumb_func
+.global asm_wrapper
+.type asm_wrapper, %function
+asm_wrapper: ;@ r0 = arg, r2 = addr of stack addresses in coroutine
+	blx   r4
+	mov   lr, r5
+
+.balign 2
+.code 16
+.thumb_func
+.global co_return
+.type co_return, %function
+co_return: ;@ r0 = arg
+	push {r1, r3, r4, r5, r6, r7, lr}
+	mov   r1, sp
+	lsrs  r2, r1, 9
+	lsls  r2, r2, 9
+	str   r1, [r2, #12]
+	ldr   r1, [r2, #8]
+	mov   sp, r1
+	pop  {r1, r3, r4, r5, r6, r7, pc}
+
+.balign 2
+.code 16
+.thumb_func
+.global fithCoCreate
+.type fithCoCreate, %function
+fithCoCreate: ;@ r0 = arg
+	push {r1, r3, lr}
+	bl    co_create
+	pop  {r1, r3, pc}
 
 .balign 2
 .code 16

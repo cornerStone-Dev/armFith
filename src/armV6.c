@@ -357,10 +357,9 @@ putMachineCode(u32 instruction)/*p;*/
 }
 
 /*e*/void
-callWord(u32 target)/*p;*/
+mc_callRelative(u32 target, u32 currentAddr)/*p;*/
 {
-	c.notLeaf = 1;
-	u32 currentAddr = (u32)c.compileCursor;
+	u16 *outputCursor = (u16*)currentAddr;
 	u32 currentPC = currentAddr + 4;
 	u32 jump = (target - currentPC) >> 1;
 	u32 imm11 = jump << 21 >> 21;
@@ -372,10 +371,19 @@ callWord(u32 target)/*p;*/
 	u32 j1    = (i1^1)^S;
 	u32 code = 0xF000;
 	code += (S<<10) + imm10;
-	putMachineCode(code);
+	*outputCursor++ = code;
 	code = 0xD000;
 	code += (j2<<11) + (j1<<13) + imm11;
-	putMachineCode(code);
+	*outputCursor = code;
+}
+
+/*e*/void
+callWord(u32 target)/*p;*/
+{
+	c.notLeaf = 1;
+	u32 currentAddr = (u32)c.compileCursor;
+	mc_callRelative(target, currentAddr);
+	c.compileCursor += 2;
 }
 
 /*e*/void
@@ -1255,7 +1263,7 @@ mc_generateStringLits(void)/*p;*/
 		*constantsCursor++ = 0;
 		// output relative address calculation
 		u32 alignPC = (((u32)todo->target + 4) >> 2) << 2;
-		*todo->target = armAdr(0, ((u32)constantsStart - alignPC) >>2);
+		*todo->target = armAdr(TOS, ((u32)constantsStart - alignPC) >>2);
 		// set up new pointers, round up to next 4 bytes
 		constantsStart = (u8*)(((u32)constantsCursor + 3) >> 2 << 2);
 		constantsCursor = constantsStart;
@@ -1750,14 +1758,10 @@ mc_call(void)/*p;*/
 	u32 prevCode = *(c.compileCursor-1);
 	if ( (prevCode>>11) == 9)
 	{
-		// [pushTos] [no-op=target] [cursor]
 		// we just pushed a large constant, re=write
-		c.compileCursor -= 1;
-		// put it into scratch instead of TOS
-		c.largeIntConsts->target -= 1;
-		c.largeIntConsts->putInScratch = 1;
-		// [pushTos=target] [no-op=cursor]
-		putMachineCode(armBlx(SCRATCH));
+		c.compileCursor -= 2;
+		c.largeIntConsts->target = 0;
+		callWord(c.largeIntConsts->value);
 		return;
 	}
 	if ( ((prevCode>>6) == 0x00) )
@@ -1771,6 +1775,18 @@ mc_call(void)/*p;*/
 	putMachineCode(armMovs(SCRATCH, TOS));
 	mc_popTos();
 	putMachineCode(armBlx(SCRATCH));
+}
+
+/*e*/void
+mc_newCoroutine(u16 *cursor)/*p;*/
+{
+	// output relative address calculation
+	u32 alignPC = (((u32)cursor + 4) >> 2) << 2;
+	*cursor = armAdr(SCRATCH, ((u32)(cursor+4) - alignPC) >>2);
+	cursor++;
+	*cursor = armPush((1<<1)+(1<<3)+(1<<4)+(1<<5)+(1<<6)+(1<<7)+(1<<8));
+	cursor++;
+	mc_callRelative((u32)co_call, (u32)cursor);
 }
 
 /*e*/void
