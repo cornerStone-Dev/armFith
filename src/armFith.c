@@ -736,7 +736,8 @@ executeOrContinue(u32 printStack)/*i;*/
 		funcToCall );
 	c.tos = result;
 	c.exprStack = (u32*)(u32)(result >> 32);
-	c.compileCursor = c.compileBase + 2; // reset the cursor
+	c.compileCursor = c.compileBase;
+	mc_wordStart(); // reset the cursor
 }
 
 /*e*/u32
@@ -761,7 +762,7 @@ fithPushValTos(u32 val)/*p;*/
 void
 printFithStackElements(u32 tos, u32 *sp, u32 *base)/*p;*/
 {
-	if (base != sp)
+	if (base > sp)
 	{
 		base-=2;
 		while (base >= sp) {
@@ -1390,6 +1391,7 @@ builtInCompileWord(u8 *start, u8 *cursor, u32 length)/*i;*/
 		case 6:  return builtInWord6(start, cursor, length);
 		case 7:  return builtInWord7(start, cursor, length);
 		case 9:  return builtInWord9(start, cursor, length);
+		case 10: return builtInWord10(start, cursor, length);
 		default: return 0;
 	}
 }
@@ -1720,6 +1722,41 @@ builtInWord9(u8 *start, u8 *cursor, u32 length)/*i;*/
 	{
 		callWord((u32)co_return);
 		return start + 9;
+	}
+	return 0;
+}
+
+/*e*/static u8*
+builtInWord10(u8 *start, u8 *cursor, u32 length)/*i;*/
+{
+	if(    (start[0] == 'c')
+		&& (start[1] == 'r')
+		&& (start[2] == 'e')
+		&& (start[3] == 'a')
+		&& (start[4] == 't')
+		&& (start[5] == 'e')
+		&& (start[6] == '-')
+		&& (start[7] == 's')
+		&& (start[8] == 't')
+		&& (start[9] == 'r') )
+	{
+		// we are creating a global string
+		executeOrContinue(0); // execute compiled code
+		u8  *string = (u8*)fithPopTos();
+		u32  length = st_len(string);
+		u16 *startOfString = c.compileBase;
+		u8  *dest = (u8*)c.compileBase;
+		// copy front to back to correctly overwrite string if we need to.
+		for (u32 i = 0; i < length; i++)
+		{
+			dest[i] = string[i];
+		}
+		dest[length] = 0; // null terminate
+		c.compileBase = (u16*)((((u32)dest)+length+2)>>1<<1);
+		c.compileCursor = c.compileBase;
+		mc_wordStart();
+		fithPushValTos((u32)startOfString);
+		return start + 10;
 	}
 	return 0;
 }
