@@ -54,6 +54,7 @@ enum{
 	BLOCK_CASE_COND,
 	BLOCK_RETURN,
 	BLOCK_ONCE,
+	BLOCK_HERE,
 };
 
 enum{
@@ -893,6 +894,16 @@ createWordFunction(u8 *start, u32 length)/*i;*/
 }
 
 /*e*/static void
+createDataStructure(void)/*i;*/
+{
+	if (c.blocks) { io_prints("Error: within a block.\n"); return; }
+	Block *newBlock = zalloc(sizeof(Block));
+	newBlock->blockType = BLOCK_HERE;
+	mc_integerLit((u32)c.compileBase);
+	c.blocks = list_prepend(newBlock, c.blocks);
+}
+
+/*e*/static void
 assignVar(u8 *start, u32 wordLength)/*i;*/
 {
 	// check for locals first
@@ -1119,6 +1130,13 @@ endBlock(void)/*i;*/
 	case BLOCK_ONCE:
 	{
 		*block->target = c.compileCursor - (block->target-2) - 2;
+		break;
+	}
+	case BLOCK_HERE:
+	{
+		c.compileBase = (u16*)((fithPopTos()+1)>>1<<1);
+		c.compileCursor = c.compileBase;
+		mc_wordStart();
 		break;
 	}
 	
@@ -1581,6 +1599,15 @@ builtInWord4(u8 *start, u8 *cursor, u32 length)/*i;*/
 		compileOnce();
 		return start + 5;
 	}
+	if(    (start[0] == 'H')
+		&& (start[1] == 'E')
+		&& (start[2] == 'R')
+		&& (start[3] == 'E')
+		&& (start[4] == '{') )
+	{
+		createDataStructure();
+		return start + 5;
+	}
 	return 0;
 }
 
@@ -1740,6 +1767,7 @@ builtInWord10(u8 *start, u8 *cursor, u32 length)/*i;*/
 		&& (start[8] == 't')
 		&& (start[9] == 'r') )
 	{
+		if (c.blocks) { io_printsn("Cannot create string inside of block"); return 0; }
 		// we are creating a global string
 		executeOrContinue(0); // execute compiled code
 		u8  *string = (u8*)fithPopTos();
