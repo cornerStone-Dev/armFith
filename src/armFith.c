@@ -54,7 +54,7 @@ enum{
 	BLOCK_CASE_COND,
 	BLOCK_RETURN,
 	BLOCK_ONCE,
-	BLOCK_HERE,
+	BLOCK_STRUCT,
 };
 
 enum{
@@ -348,6 +348,7 @@ compileDol(u8 *cursor)/*i;*/
 		// pointer load
 		mc_stackLdrTo();
 	}
+	// TODO all size types need their own store
 	return cursor;
 }
 
@@ -737,8 +738,10 @@ executeOrContinue(u32 printStack)/*i;*/
 		funcToCall );
 	c.tos = result;
 	c.exprStack = (u32*)(u32)(result >> 32);
-	c.compileCursor = c.compileBase;
-	mc_wordStart(); // reset the cursor
+	if (printStack) {
+		c.compileCursor = c.compileBase;
+		mc_wordStart(); // reset the cursor
+	}
 }
 
 /*e*/u32
@@ -898,7 +901,8 @@ createDataStructure(void)/*i;*/
 {
 	if (c.blocks) { io_prints("Error: within a block.\n"); return; }
 	Block *newBlock = zalloc(sizeof(Block));
-	newBlock->blockType = BLOCK_HERE;
+	newBlock->blockType = BLOCK_STRUCT;
+	mc_integerLit((u32)c.compileBase);
 	mc_integerLit((u32)c.compileBase);
 	c.blocks = list_prepend(newBlock, c.blocks);
 }
@@ -1132,8 +1136,9 @@ endBlock(void)/*i;*/
 		*block->target = c.compileCursor - (block->target-2) - 2;
 		break;
 	}
-	case BLOCK_HERE:
+	case BLOCK_STRUCT:
 	{
+		executeOrContinue(0);
 		c.compileBase = (u16*)((fithPopTos()+1)>>1<<1);
 		c.compileCursor = c.compileBase;
 		mc_wordStart();
@@ -1260,6 +1265,8 @@ createVar(u8 *start, u32 length)/*i;*/
 	} else {
 		// we are creating a global variable
 		executeOrContinue(0); // prepare for a definition
+		c.compileCursor = c.compileBase;
+		mc_wordStart(); // reset the cursor
 		createGlobal(start, length);
 	}
 }
@@ -1599,15 +1606,6 @@ builtInWord4(u8 *start, u8 *cursor, u32 length)/*i;*/
 		compileOnce();
 		return start + 5;
 	}
-	if(    (start[0] == 'H')
-		&& (start[1] == 'E')
-		&& (start[2] == 'R')
-		&& (start[3] == 'E')
-		&& (start[4] == '{') )
-	{
-		createDataStructure();
-		return start + 5;
-	}
 	return 0;
 }
 
@@ -1688,6 +1686,17 @@ builtInWord6(u8 *start, u8 *cursor, u32 length)/*i;*/
 	{
 		c.stackCheck = 0;
 		return start + 6;
+	}
+	if(    (start[0] == 's')
+		&& (start[1] == 't')
+		&& (start[2] == 'r')
+		&& (start[3] == 'u')
+		&& (start[4] == 'c')
+		&& (start[5] == 't')
+		&& (start[6] == '{') )
+	{
+		createDataStructure();
+		return start + 7;
 	}
 	return 0;
 }
