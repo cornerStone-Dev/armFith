@@ -282,6 +282,22 @@ armLdrIndex(u32 dest, u32 src, u32 index)
 }
 
 static u32
+armLdrByteOffset(u32 dest, u32 src, u32 offset)
+{
+	u32 code = 0x7800;
+	code += dest + (src << 3) + (offset << 6);
+	return code;
+}
+
+static u32
+armLdrByteIndex(u32 dest, u32 src, u32 index)
+{
+	u32 code = 0x5C00;
+	code += dest + (src << 3) + (index << 6);
+	return code;
+}
+
+static u32
 armLdrSpOffset(u32 dest, u32 offset)
 {
 	u32 code = 0x9800;
@@ -301,6 +317,22 @@ static u32
 armStrIndex(u32 src, u32 dest, u32 index)
 {
 	u32 code = 0x5000;
+	code += src + (dest << 3) + (index << 6);
+	return code;
+}
+
+static u32
+armStrByteOffset(u32 src, u32 dest, u32 offset)
+{
+	u32 code = 0x7000;
+	code += src + (dest << 3) + (offset << 6);
+	return code;
+}
+
+static u32
+armStrByteIndex(u32 src, u32 dest, u32 index)
+{
+	u32 code = 0x5400;
 	code += src + (dest << 3) + (index << 6);
 	return code;
 }
@@ -912,6 +944,92 @@ mc_stackStrTo(void)/*p;*/
 	}
 	mc_popScratch();
 	putMachineCode(armStrOffset(SCRATCH,TOS,0));
+	mc_popTos(); // $=
+}
+
+/*e*/void
+mc_stackLdrByteTo(void)/*p;*/
+{
+	u32 prevCode = *(c.compileCursor-1);
+	u32 val = (prevCode<<24)>>24;
+	if ( (prevCode>>11) == 6 && val <= 31)
+	{
+		// we just added a small constant, re-write
+		c.compileCursor -= 1;
+		prevCode = *(c.compileCursor-1);
+		if ( ((prevCode>>6) == 0x00) )
+		{
+			// we just pushed a local, re-write
+			c.compileCursor -= 1;
+			u32 src = prevCode>>3;
+			putMachineCode(armLdrByteOffset(TOS,src,val));
+			return;
+		}
+		putMachineCode(armLdrByteOffset(TOS,TOS,val));
+		return;
+	}
+	if ( ((prevCode>>6) == 0x00) )
+	{
+		// we just pushed a local, re-write
+		c.compileCursor -= 1;
+		u32 src = prevCode>>3;
+		putMachineCode(armLdrByteOffset(TOS,src,0));
+		return;
+	}
+	putMachineCode(armLdrByteOffset(TOS,TOS,0));
+}
+
+/*e*/void
+mc_stackStrByteTo(void)/*p;*/
+{
+	u32 prevCode = *(c.compileCursor-1);
+	u32 val = (prevCode<<24)>>24;
+	if ( (prevCode>>11) == 6 && val <= 31)
+	{
+		// we just added a small constant, re-write
+		c.compileCursor -= 1;
+		prevCode = *(c.compileCursor-1);
+		if ( ((prevCode>>6) == 0x00) )
+		{
+			// we just pushed a local, re-write
+			c.compileCursor -= 2;
+			u32 dst = prevCode>>3;
+			prevCode = *(c.compileCursor-1);
+			if ( ((prevCode>>6) == 0x00) )
+			{
+				c.compileCursor -= 2;
+				u32 data = prevCode>>3;
+				putMachineCode(armStrByteOffset(data, dst, val));
+				return; // data ptr 4 + $= 
+			}
+			putMachineCode(armStrByteOffset(TOS,dst,val));
+			mc_popTos();
+			return; // ptr 4 + $= 
+		}
+		mc_popScratch();
+		putMachineCode(armStrByteOffset(SCRATCH,TOS,val));
+		mc_popTos();
+		return; // 4 + $= 
+	}
+	if ( ((prevCode>>6) == 0x00) )
+	{
+		// we just pushed a local, re-write
+		c.compileCursor -= 2;
+		u32 dst = prevCode>>3;
+		prevCode = *(c.compileCursor-1);
+		if ( ((prevCode>>6) == 0x00) )
+		{
+			c.compileCursor -= 2;
+			u32 data = prevCode>>3;
+			putMachineCode(armStrByteOffset(data, dst, 0));
+			return; // data ptr $= 
+		}
+		putMachineCode(armStrByteOffset(TOS,dst,0));
+		mc_popTos();
+		return; // ptr $= 
+	}
+	mc_popScratch();
+	putMachineCode(armStrByteOffset(SCRATCH,TOS,0));
 	mc_popTos(); // $=
 }
 

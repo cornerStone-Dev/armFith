@@ -325,7 +325,9 @@ void isr_Uart0(void)/*p;*/
 	{
 		helper_sendMsg1((u32)&ioEventTxReady);
 		asm("sev");
-	} else {
+	}
+	if (intStatus & ((1<<4) | (1<<6)) )
+	{
 		// set interrupts to tx only because we do NOT want to spawn multiple
 		// tasks all trying to read from the uart. This ensures only one task
 		// is created. Inside of uart0SingleChar we turn back on interrupts

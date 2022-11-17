@@ -49,6 +49,7 @@ enum{
 	BLOCK_COND,
 	BLOCK_ELSE,
 	BLOCK_WHILE,
+	BLOCK_WHILE_COND,
 	BLOCK_DO,
 	BLOCK_CASE,
 	BLOCK_CASE_COND,
@@ -123,18 +124,20 @@ armFith(u8 *string)/*p;*/
 {
 	u8 *cursor = string;
 	u8 byte;
-	StringBuff *current = 0;
-	if (c.lockArmFith == 0)
-	{
-		c.lockArmFith = 1;
-	} else {
-		// armFith is already running concurrently.
-		u32 length = st_len(cursor);
-		StringBuff *new = zalloc(sizeof(StringBuff) + length - 3);
-		rom_func.memcpy(new->string, cursor, length);
-		c.nextLines = list_append(new, c.nextLines);
-		return;
-	}
+	//~ io_prints(string);
+	//~ io_printhn((u32)string);
+	//~ return;
+	//~ if (c.lockArmFith == 0)
+	//~ {
+		//~ c.lockArmFith = 1;
+	//~ } else {
+		//~ // armFith is already running concurrently.
+		//~ u32 length = st_len(cursor);
+		//~ StringBuff *new = zalloc(sizeof(StringBuff) + length - 3);
+		//~ rom_func.memcpy(new->string, cursor, length);
+		//~ c.nextLines = list_append(new, c.nextLines);
+		//~ return;
+	//~ }
 	
 	loop:
 	byte = class[*cursor++] >> 2;
@@ -171,20 +174,20 @@ armFith(u8 *string)/*p;*/
 	case SQO>>2: { cursor = consumeCharLit(cursor); goto loop; }
 	case RPA>>2: { if (*cursor == '{') {mc_setParams();cursor++;} else {io_printsn("Error: Right Paren alone.");} goto loop; }
 	case RBR>>2: { io_prints("Invalid starting character, aborting\n"); break; }
-	case BSL>>2: { while(*cursor++ != '\n'){} cursor++; goto loop; }
+	case BSL>>2: { while(*cursor != '\n'){cursor++;} cursor++; goto loop; }
 	case WSP>>2: { goto loop; }
 	case NUL>>2: { executeOrContinue(1); io_prints("> "); break; }
 	case BAD>>2: { io_prints("Bad input byte detected, aborting\n"); break; }
 	case TYP>>2: { cursor = printInterpolatedString2(cursor); goto loop; }
 }
-	if (current != 0) { free(current); current = 0; }
-	if (c.nextLines)
-	{
-		current = list_removeFirst(&c.nextLines);
-		cursor = current->string;
-		goto loop;
-	}
-	if (c.lockArmFith != 0) { c.lockArmFith = 0; }
+	//~ if (current != 0) { free(current); current = 0; }
+	//~ if (c.nextLines)
+	//~ {
+		//~ current = list_removeFirst(&c.nextLines);
+		//~ cursor = current->string;
+		//~ goto loop;
+	//~ }
+	//~ if (c.lockArmFith != 0) { c.lockArmFith = 0; }
 	
 	return;
 }
@@ -339,8 +342,20 @@ compileHas(u8 *cursor)/*i;*/
 /*e*/static u8*
 compileDol(u8 *cursor)/*i;*/
 {
-	if(*cursor == '=')
+	if(*cursor == 'b')
 	{
+		// byte size
+		cursor++;
+		if(*cursor == '=')
+		{
+			// pointer store
+			cursor++;
+			mc_stackStrByteTo();
+		} else {
+			// pointer load
+			mc_stackLdrByteTo();
+		}
+	} else if(*cursor == '=') {
 		// pointer store
 		cursor++;
 		mc_stackStrTo();
@@ -377,6 +392,7 @@ compileCond(u32 cond)/*i;*/
 	if (c.blocks && c.blocks->next->blockType == BLOCK_WHILE)
 	{
 		Block *whileBlock = c.blocks->next;
+		whileBlock->blockType = BLOCK_WHILE_COND;
 		whileBlock->target2 = c.compileCursor;
 		whileBlock->cond = cond;
 		putMachineCode(0xBF00);
@@ -1102,7 +1118,7 @@ endBlock(void)/*i;*/
 		*block->target = armBranch(c.compileCursor - block->target - 2);
 		break;
 	}
-	case BLOCK_WHILE:
+	case BLOCK_WHILE_COND:
 	{
 		// output jump to start of while
 		putMachineCode(armBranch(block->target - c.compileCursor - 2));

@@ -1,0 +1,77 @@
+\ game of life
+
+\ initially a Conway's Game of life on 16x16 grid with wrap
+
+
+
+gol-create{
+    16 16 * alloc \ allocate space for game
+}
+
+_dec{ 1 - 15 & } \ decrement with wrapping
+_inc{ 1 + 15 & } \ increment with wrapping
+_idx{ 16 * + }   \  (x y) calculate index into 2 dimentional array
+
+gol-sumAtPoint(input x y){
+	x _dec x=
+	y _dec y=
+	0 y_cnt;
+	0 x_cnt;
+	0 \ initialize the sum to 0
+	while y_cnt 3 <{
+		while x_cnt 3 <{
+			x y _idx input + $b + \ load byte and add to sum
+			x _inc x=
+			1 x_cnt+=
+		}
+		x _dec _dec _dec x= \ reset x
+		0 x_cnt=            \ reset x_cnt
+		y _inc y=
+		1 y_cnt+=
+	}
+}
+
+gol-print(input){
+	0 y_cnt;
+	0 x_cnt;
+	while y_cnt 16 <{
+		while x_cnt 16 <{
+			x_cnt y_cnt _idx input + $b \ load byte
+			0 !{
+				"X " ps
+			}{
+				"O " ps
+			}
+			1 x_cnt+=
+		}
+		"\n" ps
+		0 x_cnt=  \ reset x_cnt
+		1 y_cnt+=
+	}
+}
+
+gol-tick(input){
+	0 y_cnt;
+	0 x_cnt;
+	0 sum;
+	gol-create new;
+	while y_cnt 16 <{
+		while x_cnt 16 <{
+			input x_cnt y_cnt gol-sumAtPoint sum=  \ get sum
+			x_cnt y_cnt _idx \ save index
+			case{
+				sum 3 ={ 1 swap new + $b= }
+				sum 4 ={ drop }
+				0 swap new + $b=
+			}
+			1 x_cnt+=
+		}
+		0 x_cnt=  \ reset x_cnt
+		1 y_cnt+=
+	}
+	input free new
+}
+
+pickup{ localConst: localConst }
+
+\ end game of life

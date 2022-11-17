@@ -303,7 +303,6 @@ typedef struct CompilerContext {
 	u8          lockArmFith;
 	u8          stackCheck;
 	u8          commaState;
-	StringBuff *nextLines;
 	Function   *currentFunc;
 	u32        *returnStackBase;
 	u32        *exprStackBase;
